@@ -61,5 +61,5 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 AC_CHECK_FUNCS([pow sqrt])
 #ACX_LAPACK
-AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile rla_kernel/Makefile])
+AC_CONFIG_FILES([Makefile common/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile])
 AC_OUTPUT
