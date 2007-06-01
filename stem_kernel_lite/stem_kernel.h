@@ -12,7 +12,8 @@ public:
   typedef D Data;
 
 public:
-  StemKernel(const ScoreTable& st) : st_(st) { }
+  StemKernel(const ScoreTable& st, uint len_band=0)
+    : st_(st), len_band_(len_band) { }
 
   value_type operator()(const Data& xx, const Data& yy) const;
 
@@ -24,6 +25,7 @@ public:
 
 private:
   const ScoreTable& st_;
+  uint len_band_;
 };
 
 #endif // __INC_STEM_KERNEL_H__

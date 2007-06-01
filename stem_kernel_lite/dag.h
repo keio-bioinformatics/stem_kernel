@@ -78,8 +78,7 @@ namespace DAG {
     Node(const Pos& pos, const C& c_first, const C& c_last,
 	 float weight=1.0, uint n_edges=0);
 
-    Node(uint first, uint last,
-	 float weight=1.0)
+    Node(uint first, uint last, float weight=1.0)
       : first_(first), last_(last), edges_(), weight_(weight), cnt_()
     {
     }
@@ -126,6 +125,7 @@ namespace DAG {
     uint last() const { return last_; }
     float weight() const { return weight_; }
     const cnt_t& cnt() const { return cnt_; }
+    uint length() const { return last_-first_; }
 
   private:
     uint first_;

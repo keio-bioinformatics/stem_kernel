@@ -15,8 +15,9 @@ public:
   typedef D Data;
 
 public:
-  StemStrKernel(const ScoreTable& st, value_type gap, value_type alpha)
-    : stem_(st), str_(gap,alpha)
+  StemStrKernel(const ScoreTable& st, value_type gap, value_type alpha,
+		uint len_band=0)
+    : stem_(st, len_band), str_(gap,alpha)
   {
   }
 

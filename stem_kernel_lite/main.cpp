@@ -53,6 +53,7 @@ static std::vector<std::string> trained_model_file;
 static std::vector<std::string> predict_output;
 static bool predict_only=false;
 static uint skip=0;
+static uint len_band=0;
 
 template <class Kernel, class ExSet>
 static
@@ -287,15 +288,15 @@ do_it(const std::vector<std::string>& extra_args)
       return do_train(extra_args[0], kernel, train);
     } else if (use_string) {
       SuScoreTable st(gap, beta, loop_gap);
-      SSKernel kernel(st, loop_gap, alpha);
+      SSKernel kernel(st, loop_gap, alpha, len_band);
       return do_train(extra_args[0], kernel, train);
     } else if (use_ribosum) {
       SuScoreTable st(gap, beta, loop_gap);
-      SuKernel kernel(st);
+      SuKernel kernel(st, len_band);
       return do_train(extra_args[0], kernel, train);
     } else {
       SiScoreTable st(gap, stack, covar, loop_gap);
-      SiKernel kernel(st);
+      SiKernel kernel(st, len_band);
       return do_train(extra_args[0], kernel, train);
     }
   } else {
@@ -359,15 +360,15 @@ do_it(const std::vector<std::string>& extra_args)
       return do_predict(extra_args[0], extra_args, kernel, train, sv_index);
     } else if (use_string) {
       SuScoreTable st(gap, beta, loop_gap);
-      SSKernel kernel(st, loop_gap, alpha);
+      SSKernel kernel(st, loop_gap, alpha, len_band);
       return do_predict(extra_args[0], extra_args, kernel, train, sv_index);
     } else if (use_ribosum) {
       SuScoreTable st(gap, beta, loop_gap);
-      SuKernel kernel(st);
+      SuKernel kernel(st, len_band);
       return do_predict(extra_args[0], extra_args, kernel, train, sv_index);
     } else {
       SiScoreTable st(gap, stack, covar, loop_gap);
-      SiKernel kernel(st);
+      SiKernel kernel(st, len_band);
       return do_predict(extra_args[0], extra_args, kernel, train, sv_index);
     }
   }
@@ -426,6 +427,8 @@ main(int argc, char** argv)
      "set the window size for folding RNAs")
     ("pair-width", po::value<uint>(&pair_sz)->default_value(0),
      "set the pair width for pairing bases")
+    ("length-band", po::value<uint>(&len_band)->default_value(0),
+     "set the band of difference of the length between bases")
     ("no-ribosum", "do not use the RIBOSUM substitution matrix")
     ("no-string", "do not convolute the string kernel with base pair probabilities")
     ("string-only", "use only the string kernel with base pair probabilities")
