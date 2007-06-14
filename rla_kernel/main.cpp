@@ -41,7 +41,7 @@ typedef double value_type;
 
 typedef std::pair<std::string, StringKernel<value_type>::Seq > Example;
 typedef std::vector< Example > ExampleSet;
-/*
+
 uint char2rna(char c) 
 {
   switch(c){
@@ -57,12 +57,15 @@ uint char2rna(char c)
   case 'u':
     return 3;
     break;
-  defalut:
-    std::cout <<"hoge"<<std::endl;
+  case 't':
+    return 3;
+    break;
+  default:
+    return 4;
     break;
   }
 }
-*/
+
 int
 load_examples(const std::string& label, std::ifstream& in, ExampleSet& ex, 
 	      int win_sz_, int pair_sz_, double th_)
@@ -71,10 +74,11 @@ load_examples(const std::string& label, std::ifstream& in, ExampleSet& ex,
   typedef boost::multi_array<value_type,2> BPMAT;
   uint ret=0;
   InputSeq is(in);
-  value_type tmp, tmp2 /*, tmp3*/;
+  value_type tmp, tmp2, tmp3;
   while (is.get_next_seq()) {
     std::string s(is.seq());
     boost::algorithm::to_lower(s);
+    
     //caluculate probability
     Vienna::plist *pl;
     Vienna::init_pf_foldLP(s.size()+1);
@@ -93,49 +97,43 @@ load_examples(const std::string& label, std::ifstream& in, ExampleSet& ex,
     free(pl);
     Vienna::free_pf_arraysLP();
     
-    //std::vector<uint> seq(s.size());
+    std::vector<uint> intseq;
+    for(uint j=0; j < s.size(); j++){
+      intseq.push_back(char2rna(s[j]));
+    }
     std::vector<value_type> right;
     std::vector<value_type> left;
-    //std::vector<value_type> right(s.size());
-    //std::vector<value_type> left(s.size());
-    //std::vector<value_type> unpair(s.size());
+    std::vector<value_type> unpair;
+   
  
     for(uint j=0; j!=s.size()+1; ++j){
-      //seq[j]= char2rna(s[j]);
       tmp =0;
       for(uint i=j;;--i){
 	tmp+=bp[i+1][j+1];
 	if(i==0) break;
       }
-      //std::cout << seq[j] <<"\t"<< tmp <<"\t\t";
-      //right[j]= tmp;
       right.push_back(tmp);
       tmp2 = 0;
       for(uint k=j; k!=s.size()+1; ++k){
-	//std::cout << "left " << j<< " "<< k << std::endl;
 	tmp2+=bp[j+1][k+1];
       }
-      //std::cout << tmp2 ;
-      //left[j]=tmp2;
       left.push_back(tmp2);
-      /*
+      tmp3 = 0;
       tmp3 = 1 - (tmp + tmp2);
-      std::cout << "\t\t"<< tmp3;  
       if(tmp3 < 0) tmp3 = 0;
-      std::cout << "\t\t"<< tmp3 << std::endl;  
-      unpair[j]=tmp3;
-      */
+      
+      unpair.push_back(tmp3);
     }
     /*
-      for(uint i=0; i != seq.size()+1 ;i++){
-	std::cout << s[i]<< " "<< seq[i] <<"\t"<< left[i] <<"\t\t"<< right[i] << "\t\t"<< unpair[i] << std::endl;  
+    for(uint i=0; i != intseq.size();i++){
+	std::cout << s[i]<< " "<< intseq[i] <<"\t"<< left[i] <<"\t\t"<< right[i] << "\t\t"<< unpair[i] << std::endl;  
       }
     
       std::cout << std::endl;
     */
-    StringKernel<value_type>::Seq example(s, right, left);
-    //StringKernel<value_type>::Seq example(seq, right, left, unpair);
-    ex.push_back(std::make_pair(label,example));
+    //StringKernel<value_type>::Seq example(s, right, left, unpair);
+    StringKernel<value_type>::Seq seq(intseq, right, left, unpair);
+    ex.push_back(std::make_pair(label,seq));
     ret++;
   }
   return ret;
@@ -148,41 +146,42 @@ load_examples(const std::string& label,
   typedef double value_type;
   uint ret=0;
   InputSeq is(in);
+  value_type tmp, tmp2, tmp3;
 
   while (is.get_next_seq()) {
     std::vector<value_type> right;
     std::vector<value_type> left;
-    value_type tmp, tmp2;
-
+    std::vector<value_type> unpair;
     std::string s(is.seq());
     boost::algorithm::to_lower(s);
+    
+    //convert from string to uint
+    std::vector<uint> intseq;
+    for(uint j=0; j < s.size(); j++){
+      intseq.push_back(char2rna(s[j]));
+    }
+        
     //caluculate probability
     PFWrapper pf(s,true);
-    /*float f=*/ pf.fold();
+    float f=pf.fold();
     for(uint j=0; j!=pf.size(); ++j){
       tmp =0;
       for(uint i=j;;--i){
 	tmp+=pf(i+1,j+1);
-	//std::cout << pf(i+1,j+1) << " ";
-	//std::cout << "right " <<i<< " "<< j << std::endl;
 	if(i==0) break;
       }
-      //std::cout << std::endl;
       right.push_back(tmp);
-      //std::cout << std::endl;
       tmp2 = 0;
       for(uint k=j; k!=pf.size(); ++k){
-	//std::cout << "left " << j<< " "<< k << std::endl;
 	tmp2+=pf(j+1,k+1);
       }
       left.push_back(tmp2);
-      }
-    /*
-      for(uint i=0; i < right.size();i++){
-      std::cout << right[i] << "\t" << left[i] << std::endl;
-      }
-    */
-      StringKernel<value_type>::Seq seq(s, right, left);
+      tmp3 = 0;
+      tmp3 = 1 - (tmp + tmp2);
+      if(tmp3 < 0) tmp3 = 0;
+      unpair.push_back(tmp3);
+    }
+    StringKernel<value_type>::Seq seq(intseq, right, left, unpair);
     ex.push_back(std::make_pair(label,seq));
     ret++;
   }
@@ -199,7 +198,7 @@ main(int argc, char** argv)
   float ext;
   int win_sz;
   int pair_sz;
-  /*double th=10E-100; */
+  double th=10E-100; 
   uint n_th=1;
   std::string output_file;
   std::string test_norm_output;
@@ -213,10 +212,10 @@ main(int argc, char** argv)
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "show this message")
-    ("gap,g", po::value<float>(&gap)->default_value(-8.5), "set gap weight")
+    ("gap,g", po::value<float>(&gap)->default_value(-8.0), "set gap weight")
     ("ext,e", po::value<float>(&ext)->default_value(-0.75), "set extension weight")
-    ("alpha,a", po::value<float>(&alpha)->default_value(6.0), "set alpha")
-    ("beta,b", po::value<float>(&beta)->default_value(0.1), "set beta")
+    ("alpha,a", po::value<float>(&alpha)->default_value(4.5), "set alpha")
+    ("beta,b", po::value<float>(&beta)->default_value(0.11), "set beta")
     ("win_sz,w", po::value<int>(&win_sz)->default_value(15), "set win_sz")
     ("pair_sz,p", po::value<int>(&pair_sz)->default_value(15), "set pair_sz")
 #if !defined (HAVE_MPI) && defined (HAVE_BOOST_THREAD)
@@ -232,10 +231,8 @@ main(int argc, char** argv)
     options(desc).allow_unregistered().run();
   std::vector<std::string> extra_args =
     collect_unrecognized(parsed.options, po::include_positional);
-  std::vector<po::option>::iterator new_end=
-    std::remove_if(parsed.options.begin(), parsed.options.end(),
-		   bind(&po::option::unregistered, _1) );
-  parsed.options.erase(new_end,  parsed.options.end());
+  std::remove_if(parsed.options.begin(), parsed.options.end(),
+		 bind(&po::option::unregistered, _1) );
   po::store(parsed, vm);
   po::notify(vm);
 

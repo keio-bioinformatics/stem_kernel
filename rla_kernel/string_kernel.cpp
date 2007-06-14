@@ -44,28 +44,6 @@ char2rna(char c) const
     break;
   }
 }
-/*
-char rna2char(uint i)
-{
-  switch(i){
-  case 0:
-    return 'a';
-    break;
-  case 1:
-    return 'c';
-    break;
-  case 2:
-    return 'g';
-    break;
-  case 3:
-    return 'u';
-    break;
-  defalut:
-    return 'N';
-    break;
-  }
-}
-*/
 
 
 template < class ValueType >
@@ -73,23 +51,26 @@ ValueType
 StringKernel<ValueType>::
 score(const Seq& x, const Seq& y, uint i, uint j) const
 {  
+  /*
   int base1 = char2rna(x.seq[i]);
   int base2 = char2rna(y.seq[j]);
   value_type p0x = 1 - (x.p_r[i] + x.p_l[i]);
   value_type p0y = 1 - (y.p_r[j] + y.p_l[j]);
   if (p0x < 0) p0x = 0;
   if (p0y < 0) p0y = 0;
-  return alpha_ * (sqrt(x.p_r[i] * y.p_r[j]) + sqrt(x.p_l[i] * y.p_l[j]))
-    + sqrt(p0x * p0y) * RIBOSUM[base1][base2];
+  */
+  return alpha_ * (sqrt(x.p_r[i] * y.p_r[j] )+ sqrt(x.p_l[i] * y.p_l[j]))
+    + sqrt(x.p_un[i] * y.p_un[j]) * RIBOSUM[x.seq[i]][y.seq[j]];
 }
+
 
 template < class ValueType >
 ValueType
 StringKernel<ValueType>::
 operator()(const Seq& x, const Seq& y) const
 {
-  // const value_type& g=gap_;
-  // const value_type& g2 = g*g;
+  const value_type& g=gap_;
+  value_type g2 = g*g;
   typedef boost::multi_array<value_type,2> dp_type;
 
   dp_type M(boost::extents[x.size()+1][y.size()+1]);
@@ -97,7 +78,6 @@ operator()(const Seq& x, const Seq& y) const
   dp_type Y(boost::extents[x.size()+1][y.size()+1]);
   dp_type X2(boost::extents[x.size()+1][y.size()+1]);
   dp_type Y2(boost::extents[x.size()+1][y.size()+1]);
-  
   //initialize  
   for (uint i=0; i!=x.size()+1; ++i) {
     M[i][0]=0;
@@ -121,11 +101,11 @@ operator()(const Seq& x, const Seq& y) const
     for (uint j=1; j != y.size()+1; ++j) {
       M[i][j] = exp(beta_ * score(x, y, i-1, j-1))
 	* (1 + X[i-1][j-1] + Y[i-1][j-1] + M[i-1][j-1]);
-      X[i][j] = exp(beta_ * gap_) * M[i-1][j] 
-	+ exp(beta_ * ext_) * X[i-1][j] ;
+      X[i][j] = beta_gap_ * M[i-1][j] 
+	+ beta_ext_ * X[i-1][j] ;
       
-      Y[i][j] = exp(beta_ * gap_) * (M[i][j-1] + X[i][j-1]) 
-	+ exp(beta_ * ext_) * Y[i][j-1] ;
+      Y[i][j] = beta_gap_ * (M[i][j-1] + X[i][j-1]) 
+	+ beta_ext_ * Y[i][j-1] ;
 
       X2[i][j]= M[i-1][j] + X2[i-1][j];
       Y2[i][j]= M[i][j-1] + X2[i][j-1] + Y2[i][j-1];

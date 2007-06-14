@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 
 template < class ValueType >
 class StringKernel
@@ -15,21 +16,16 @@ class StringKernel
   
   class Seq{
   public:
-    std::string seq;
     std::vector<value_type> p_r;
     std::vector<value_type> p_l;
-    //std::vector<value_type> p_un;
-    //std::vector<uint> seq;
-    Seq() : seq(), p_r(), p_l(){}
-    Seq(const std::string& s, 
-	const std::vector<value_type>& r,
-	const std::vector<value_type>& l)
-      : seq(s), p_r(r), p_l(l){}
-    //Seq() : seq(), p_r(), p_l(), p_un(){}
-    //Seq(const std::vector<uint>& s, std::vector<value_type> r, std::vector<value_type> l,std::vector<value_type> un): seq(s), p_r(r), p_l(l), p_un(un){}
-    //Seq(const Seq& x) : seq(x.seq), p_r(x.p_r), p_l(x.p_l), p_un(x.p_un) {}
-    Seq(const Seq& x) : seq(x.seq), p_r(x.p_r), p_l(x.p_l){}
-    uint size()const{ return seq.size();}
+    std::vector<value_type> p_un;
+    std::vector<uint> seq;
+    Seq() : seq(), p_r(), p_l(), p_un(){}
+    Seq(const std::vector<uint>& s, std::vector<value_type> r, 
+	std::vector<value_type> l, std::vector<value_type> un)
+      : seq(s), p_r(r), p_l(l), p_un(un){}
+    Seq(const Seq& x) : seq(x.seq), p_r(x.p_r), p_l(x.p_l), p_un(x.p_un) {}
+    int size()const{ return seq.size();}
   };
 
  private:
@@ -37,11 +33,14 @@ class StringKernel
   value_type ext_;
   value_type alpha_;
   value_type beta_;
-  
+  value_type beta_gap_;
+  value_type beta_ext_;
+ 
 public:
   StringKernel(value_type gap=1,value_type ext=1,
 	       value_type alpha=1,value_type beta=1) 
-    : gap_(gap), ext_(ext), alpha_(alpha), beta_(beta) {}
+    : gap_(gap), ext_(ext), alpha_(alpha), beta_(beta), 
+    beta_gap_(exp(beta*gap)), beta_ext_(exp(beta*ext)){}
   value_type operator()(const Seq& xx, const Seq& yy) const;
   value_type operator()(const std::string& x, const std::string& y) const;
   value_type score(const Seq& xx, const Seq& yy, uint i, uint j) const;
