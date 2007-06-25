@@ -11,9 +11,38 @@
 #include <cassert>
 #include "rna.h"
 
+static
+char
+char_table[N_IUPAC+1] = {
+  RNASymbol<char>::A, RNASymbol<char>::C,
+  RNASymbol<char>::G, RNASymbol<char>::U,
+  RNASymbol<char>::T, RNASymbol<char>::GAP,
+  RNASymbol<char>::R, RNASymbol<char>::Y,
+  RNASymbol<char>::M, RNASymbol<char>::K,
+  RNASymbol<char>::S, RNASymbol<char>::W,
+  RNASymbol<char>::B, RNASymbol<char>::D,
+  RNASymbol<char>::H, RNASymbol<char>::V,
+  RNASymbol<char>::N,
+};
+
+static
+rna_t
+rna_table[N_IUPAC+1] = {
+  RNASymbol<rna_t>::A, RNASymbol<rna_t>::C,
+  RNASymbol<rna_t>::G, RNASymbol<rna_t>::U,
+  RNASymbol<rna_t>::T, RNASymbol<rna_t>::GAP,
+  RNASymbol<rna_t>::R, RNASymbol<rna_t>::Y,
+  RNASymbol<rna_t>::M, RNASymbol<rna_t>::K,
+  RNASymbol<rna_t>::S, RNASymbol<rna_t>::W,
+  RNASymbol<rna_t>::B, RNASymbol<rna_t>::D,
+  RNASymbol<rna_t>::H, RNASymbol<rna_t>::V,
+  RNASymbol<rna_t>::N,
+};
+
 rna_t
 char2rna(char rna)
 {
+#if 0
   switch (tolower(rna)) {
   case RNASymbol<char>::A:
     return static_cast<rna_t>(RNASymbol<rna_t>::A);
@@ -33,11 +62,19 @@ char2rna(char rna)
     return static_cast<rna_t>(RNASymbol<rna_t>::GAP);
     break;
   }
+#else
+  char r = tolower(rna);
+  for (uint i=0; i!=N_IUPAC+1; ++i) {
+    if (r==char_table[i]) return rna_table[i];
+  }
+  return static_cast<rna_t>(RNASymbol<rna_t>::GAP);
+#endif
 }
 
 char
 rna2char(const rna_t& rna)
 {
+#if 0
   switch (rna) {
   case RNASymbol<rna_t>::A:
     return RNASymbol<char>::A;
@@ -56,6 +93,12 @@ rna2char(const rna_t& rna)
     return RNASymbol<char>::GAP;
     break;
   }
+#else
+  for (uint i=0; i!=N_IUPAC+1; ++i) {
+    if (rna==rna_table[i]) return char_table[i];
+  }
+  return RNASymbol<char>::GAP;
+#endif
 }
 
 struct c2r {
@@ -298,6 +341,27 @@ add_seq(const Seq& seq)
   }
   return *this;
 }
+
+bool
+iupac_symbol[N_IUPAC][N_RNA] = {
+  // A      C      G      T(U)
+  { true,  false, false, false }, // A
+  { false, true,  false, false }, // C
+  { false, false, true,  false }, // G
+  { false, false, false, true  }, // T(U)
+  { false, false, false, false }, // GAP
+  { true,  false, true,  false }, // R = A or G
+  { false, true,  false, true  }, // Y = C or T(U)
+  { true,  true,  false, false }, // M = A or C
+  { false, false, true,  true  }, // K = G or T(U)
+  { false, true,  true,  false }, // S = C or G
+  { true,  false, false, true  }, // W = A or T(U)
+  { false, true,  true,  true  }, // B = C or G or T(U)
+  { true,  false, true,  true  }, // D = A or G or T(U)
+  { true,  true,  false, true  }, // H = A or C or T(U)
+  { true,  true,  true,  false }, // V = A or C or G
+  { true,  true,  true,  true  }, // N = A or C or G or T(U)
+};
 
 template
 MASequence<RNASequence>&

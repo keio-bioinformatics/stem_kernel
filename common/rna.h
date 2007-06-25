@@ -13,8 +13,20 @@ enum {
   RNA_G = 2,
   RNA_T = 3,
   RNA_U = 3,
+  N_RNA = 4,
   RNA_GAP = 4,
-  N_RNA = 4
+  RNA_R = 5, // A or G
+  RNA_Y = 6, // C or T(U)
+  RNA_M = 7, // A or C
+  RNA_K = 8, // G or T(U)
+  RNA_S = 9, // C or G
+  RNA_W = 10, // A or T(U)
+  RNA_B = 11, // C or G or T(U)
+  RNA_D = 12, // A or G or T(U)
+  RNA_H = 13, // A or C or T(U)
+  RNA_V = 14, // A or C or G
+  RNA_N = 15, // A or C or G or T(U)
+  N_IUPAC = 16,
 };
 typedef unsigned char rna_t;
 
@@ -23,24 +35,30 @@ typedef std::vector<rna_t> RNASequence;
 template <class TP>
 struct RNASymbol {
   enum {
-    A = RNA_A,
-    C = RNA_C,
-    G = RNA_G,
-    T = RNA_T,
-    U = RNA_U,
-    GAP = RNA_GAP,
+    A = RNA_A, C = RNA_C,
+    G = RNA_G, T = RNA_T,
+    U = RNA_U, GAP = RNA_GAP,
+    R = RNA_R, Y = RNA_Y,
+    M = RNA_M, K = RNA_K,
+    S = RNA_S, W = RNA_W,
+    B = RNA_B, D = RNA_D,
+    H = RNA_H, V = RNA_V,
+    N = RNA_N,
   };
 };
 
 template <>
 struct RNASymbol<char> {
   enum {
-    A = 'a',
-    C = 'c',
-    G = 'g',
-    U = 'u',
-    T = 't',
-    GAP = '-',
+    A = 'a', C = 'c',
+    G = 'g', U = 'u',
+    T = 't', GAP = '-',
+    R = 'r', Y = 'y',
+    M = 'm', K = 'k',
+    S = 's', W = 'w',
+    B = 'b', D = 'd',
+    H = 'h', V = 'v',
+    N = 'n',
   };
 };
 
@@ -120,6 +138,7 @@ public:
   Seq get_seq(uint i) const;
 };
 
+extern bool iupac_symbol[N_IUPAC][N_RNA];
 
 template < class Seq >
 Column<typename Seq::value_type>

@@ -125,14 +125,33 @@ template < class D, class V >
 SubstNodeScore<D,V>::
 SubstNodeScore(value_type gap, value_type beta)
   : gap_(gap),
-    co_subst_(boost::extents[N_RNA][N_RNA][N_RNA][N_RNA]),
+    co_subst_(boost::extents[N_IUPAC][N_IUPAC][N_IUPAC][N_IUPAC]),
     beta_(beta)
 {
-  for (uint i=0; i!=N_RNA; ++i) {
-    for (uint j=0; j!=N_RNA; ++j) {
-      for (uint k=0; k!=N_RNA; ++k) {
-	for (uint l=0; l!=N_RNA; ++l) {
-	  co_subst_[i][j][k][l] = exp(ribosum_p[i][j][k][l] * beta_);
+  for (uint i=0; i!=N_IUPAC; ++i) {
+    for (uint j=0; j!=N_IUPAC; ++j) {
+      for (uint k=0; k!=N_IUPAC; ++k) {
+	for (uint l=0; l!=N_IUPAC; ++l) {
+	  uint cnt=0;
+	  value_type val=0.0;
+	  for (uint a=0; a!=N_RNA; ++a) {
+	    if (!iupac_symbol[i][a]) continue;
+	    for (uint b=0; b!=N_RNA; ++b) {
+	      if (!iupac_symbol[j][b]) continue;
+	      for (uint c=0; c!=N_RNA; ++c) {
+		if (!iupac_symbol[k][c]) continue;
+		for (uint d=0; d!=N_RNA; ++d) {
+		  if (!iupac_symbol[l][d]) continue;
+		  val += ribosum_p[a][b][c][d];
+		  cnt++;
+		}
+	      }
+	    }
+	  }
+	  if (cnt==0)
+	    co_subst_[i][j][k][l] = gap_*gap_;
+	  else
+	    co_subst_[i][j][k][l] = exp(val/cnt * beta_);
 	}
       }
     }
