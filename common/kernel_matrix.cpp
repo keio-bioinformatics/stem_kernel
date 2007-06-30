@@ -450,7 +450,7 @@ calculate(const ExampleSet& train,
 	  const Kernel& kernel, bool normalize, uint n_th)
 {
   uint n=train.size();
-
+  //resize(n,n);
 #ifdef HAVE_MPI
   typedef CalcTrainMatrix<Kernel, ExampleSet > CalcMatrix;
   uint rank = MPI::COMM_WORLD.Get_rank();
@@ -458,9 +458,10 @@ calculate(const ExampleSet& train,
   CalcMatrix calc(num_procs, rank, train, kernel);
   calc();
   if (rank==0) {
-    label_.resize(n);
+    resize(n, n);
     for (uint i=0; i!=n; ++i) label_[i]=train[i].first;
-    matrix_.resize(boost::extents[n][n]);
+    //label_.resize(n);
+    //matrix_.resize(boost::extents[n][n]);
     for (uint t=0; t!=num_procs; ++t) {
       calc.recv(t, 0, *this);
     }
@@ -480,8 +481,9 @@ calculate(const ExampleSet& train,
 #else  // HAVE_MPI
 
   typedef CalcTrainMatrix<Kernel, KernelMatrix< value_type >, ExampleSet > CalcMatrix;
-  matrix_.resize(boost::extents[n][n]);
-  label_.resize(n);
+  resize(n);
+  //matrix_.resize(boost::extents[n][n]);
+  //label_.resize(n);
   for (uint i=0; i!=n; ++i) label_[i]=train[i].first;
 
 #ifdef HAVE_BOOST_THREAD
@@ -608,8 +610,9 @@ calculate(const ExampleSet& test, const ExampleSet& train,
 #ifdef HAVE_MPI
   if (MPI::COMM_WORLD.Get_rank()==0) {
 #endif
-    label_.resize(test.size());
-    matrix_.resize(boost::extents[test.size()][train.size()]);
+    resize(test.size(), train.size());
+    //label_.resize(test.size());
+    //matrix_.resize(boost::extents[test.size()][train.size()]);
     if (norm_test||normalize) self_.resize(train.size());
 #ifdef HAVE_MPI
   }

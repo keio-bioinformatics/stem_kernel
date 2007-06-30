@@ -126,6 +126,7 @@ operator()(const Seq& x, const Seq& y) const
     + Y2[x.size()][y.size()] + M[x.size()][y.size()];
 }
 
+#if 0
 template < class ValueType >
 ValueType
 StringKernel<ValueType>::
@@ -200,5 +201,6 @@ operator()(const std::string& x, const std::string& y) const
   return K0[x.size()][y.size()];
 #endif
 }
+#endif
 
 template class StringKernel<double>;

@@ -37,6 +37,7 @@ namespace Vienna{
 
 namespace po = boost::program_options;
 using namespace boost::lambda;
+
 typedef double value_type;
 
 typedef std::pair<std::string, StringKernel<value_type>::Seq > Example;
@@ -231,8 +232,10 @@ main(int argc, char** argv)
     options(desc).allow_unregistered().run();
   std::vector<std::string> extra_args =
     collect_unrecognized(parsed.options, po::include_positional);
-  std::remove_if(parsed.options.begin(), parsed.options.end(),
-		 bind(&po::option::unregistered, _1) );
+  std::vector<po::option>::iterator new_end=
+    std::remove_if(parsed.options.begin(), parsed.options.end(),
+		   bind(&po::option::unregistered, _1) );
+  parsed.options.erase(new_end, parsed.options.end());
   po::store(parsed, vm);
   po::notify(vm);
 
@@ -268,7 +271,7 @@ main(int argc, char** argv)
       //load_examples(extra_args[i], in, test, win_sz, pair_sz, th);
     }
   }
-  
+
   StringKernel<value_type> kernel(gap, ext, alpha, beta);
   KernelMatrix<value_type> matrix;
   if (test.empty()) {

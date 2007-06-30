@@ -31,6 +31,12 @@ public:
   {
   }
 
+  void resize(uint row, uint col)
+  {
+    matrix_.resize(boost::extents[row][col]);
+    label_.resize(row);
+  }
+
   value_type& operator()(uint x, uint y)
   {
     return matrix_[x][y];
