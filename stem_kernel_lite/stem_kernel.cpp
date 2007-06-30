@@ -109,7 +109,8 @@ operator()(const Data& xx, const Data& yy) const
       // MATCH
       K1[j] = G1[j] = 0.0;
       if (!x[i].empty() && !y[j].empty() &&
-	  (len_band_==0 || abs(x[i].length()-y[j].length())<=len_band_) ) {
+	  (len_band_==0 ||
+	   static_cast<uint>(abs(x[i].length()-y[j].length()))<=len_band_) ) {
 	// score for this node
 	value_type v_s = st_.node_score(xx, yy, i, j);
 	for (ix=x[i].begin(); ix!=x[i].end(); ++ix) {

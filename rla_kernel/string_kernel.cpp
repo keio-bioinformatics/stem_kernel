@@ -69,8 +69,8 @@ ValueType
 StringKernel<ValueType>::
 operator()(const Seq& x, const Seq& y) const
 {
-  const value_type& g=gap_;
-  value_type g2 = g*g;
+  /*const value_type& g=gap_;*/
+  /*value_type g2 = g*g;*/
   typedef boost::multi_array<value_type,2> dp_type;
 
   dp_type M(boost::extents[x.size()+1][y.size()+1]);

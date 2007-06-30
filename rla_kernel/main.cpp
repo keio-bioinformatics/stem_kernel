@@ -164,7 +164,7 @@ load_examples(const std::string& label,
         
     //caluculate probability
     PFWrapper pf(s,true);
-    float f=pf.fold();
+    /*float f=*/ pf.fold();
     for(uint j=0; j!=pf.size(); ++j){
       tmp =0;
       for(uint i=j;;--i){
@@ -199,7 +199,7 @@ main(int argc, char** argv)
   float ext;
   int win_sz;
   int pair_sz;
-  double th=10E-100; 
+  /*double th=10E-100;*/
   uint n_th=1;
   std::string output_file;
   std::string test_norm_output;

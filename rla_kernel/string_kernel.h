@@ -16,16 +16,16 @@ class StringKernel
   
   class Seq{
   public:
+    std::vector<uint> seq;
     std::vector<value_type> p_r;
     std::vector<value_type> p_l;
     std::vector<value_type> p_un;
-    std::vector<uint> seq;
     Seq() : seq(), p_r(), p_l(), p_un(){}
     Seq(const std::vector<uint>& s, std::vector<value_type> r, 
 	std::vector<value_type> l, std::vector<value_type> un)
       : seq(s), p_r(r), p_l(l), p_un(un){}
     Seq(const Seq& x) : seq(x.seq), p_r(x.p_r), p_l(x.p_l), p_un(x.p_un) {}
-    int size()const{ return seq.size();}
+    uint size() const{ return seq.size();}
   };
 
  private:

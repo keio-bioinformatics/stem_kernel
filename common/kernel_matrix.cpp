@@ -481,7 +481,7 @@ calculate(const ExampleSet& train,
 #else  // HAVE_MPI
 
   typedef CalcTrainMatrix<Kernel, KernelMatrix< value_type >, ExampleSet > CalcMatrix;
-  resize(n);
+  resize(n,n);
   //matrix_.resize(boost::extents[n][n]);
   //label_.resize(n);
   for (uint i=0; i!=n; ++i) label_[i]=train[i].first;
