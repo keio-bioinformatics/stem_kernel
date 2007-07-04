@@ -15,6 +15,10 @@ template < class Seq >
 bool
 load_fa(std::list<Seq>& ma, const char* filename);
 
+template < class Seq >
+bool
+load_fa(std::list< MASequence<Seq> >& ma, const char* filename);
+
 #endif //  __INC_FA_H__
 
 // Local Variables:

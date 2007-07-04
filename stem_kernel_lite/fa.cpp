@@ -91,6 +91,25 @@ load_fa(std::list<Seq>& fa, const char* filename)
   return n!=0;
 }
 
+template < class Seq >
+bool
+load_fa(std::list< MASequence<Seq> >& ma, const char* filename)
+{
+  std::list<std::string> fa;
+  bool res=load_fa(fa, filename);
+  if (!res) return res;
+  std::list<std::string>::const_iterator x;
+  MASequence<Seq> m;
+  for (x=fa.begin(); x!=fa.end(); ++x) {
+    Seq r;
+    char2rna(r, *x);
+    m.add_seq(r);
+  }
+  ma.push_back(m);
+  return true;
+}
+
+
 #if 0
 template
 bool
@@ -99,4 +118,8 @@ load_fa(std::list<RNASequence>& fa, const char* filename);
 template
 bool
 load_fa(std::list<std::string>& fa, const char* filename);
+
+template
+bool
+load_fa(std::list<MASequence<std::string> >& ma, const char* filename);
 #endif

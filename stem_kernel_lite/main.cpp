@@ -272,7 +272,16 @@ do_it(const std::vector<std::string>& extra_args)
     for (uint i=1; i<extra_args.size(); i+=2) {
       bool res=false;
       res=load_examples(extra_args[i], extra_args[i+1].c_str(), train);
-      if (!res) return false;
+      if (!res) {
+#ifdef HAVE_MPI
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+#endif
+	  std::cout << "fail to load " << extra_args[i+1] << std::endl;
+#ifdef HAVE_MPI
+	}
+#endif
+	return false;
+      }
 #ifdef HAVE_MPI
       if (MPI::COMM_WORLD.Get_rank()==0) {
 #endif

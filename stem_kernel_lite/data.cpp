@@ -635,7 +635,8 @@ load_examples(const std::string& label,
   Glob::const_iterator p;
   for (p=glob.begin(); p!=glob.end(); ++p) {
     if (!load_maf(ma, p->c_str()) &&
-	!load_aln(ma, p->c_str())) {
+	!load_aln(ma, p->c_str()) &&
+	!load_fa(ma, p->c_str())) {
 #if 0
       std::ostringstream os;
       os << p->c_str() << ": bad format";
@@ -674,7 +675,8 @@ load_examples(const std::string& label,
   Glob::const_iterator p;
   for (p=glob.begin(); p!=glob.end(); ++p) {
     if (!load_maf(ma, p->c_str()) &&
-	!load_aln(ma, p->c_str())) {
+	!load_aln(ma, p->c_str()) &&
+	!load_fa(ma, p->c_str())) {
 #if 0
       std::ostringstream os;
       os << p->c_str() << ": bad format";
