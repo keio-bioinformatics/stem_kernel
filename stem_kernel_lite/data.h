@@ -41,7 +41,7 @@ struct Col
   unsigned char& cnt(uint i) { return cnt_[i]; }
 };
 
-enum { ALIFOLD, FOLD, LFOLD };	// available methods
+enum { ALIFOLD, FOLD, LFOLD, NO_BPMATRIX };	// available methods
 void set_folding_method(uint method);
 
 void set_bp_threshold(float th);

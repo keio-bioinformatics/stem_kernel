@@ -440,7 +440,8 @@ main(int argc, char** argv)
      "set the band of difference of the length between bases")
     ("no-ribosum", "do not use the RIBOSUM substitution matrix")
     ("no-string", "do not convolute the string kernel with base pair probabilities")
-    ("string-only", "use only the string kernel with base pair probabilities")
+    //("string-only", "use only the string kernel with base pair probabilities")
+    ("la-kernel", "run as local alignment kernel")
     ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
      "set the loop weight of the RIBOSUM for the string kernel")
     ("beta,b", po::value<double>(&beta)->default_value(0.3),
@@ -483,11 +484,13 @@ main(int argc, char** argv)
   }
   enable_normalize = vm.count("normalize");
   enable_test_normalize = !test_norm_output.empty();
-  use_string_only = vm.count("string-only");
+  //use_string_only = vm.count("string-only");
+  use_string_only = vm.count("la-kernel");
   use_string = !vm.count("no-string");
   use_ribosum = !vm.count("no-ribosum");
   set_folding_method(vm.count("use-alifold") ? ALIFOLD : FOLD);
   if (win_sz>0) set_folding_method(LFOLD);
+  if (use_string_only) set_folding_method(NO_BPMATRIX);
   set_bp_threshold(th);
   set_window_size(win_sz, pair_sz);
   predict_only = vm.count("no-matrix");

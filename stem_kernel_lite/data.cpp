@@ -101,13 +101,17 @@ Data<S,IS,N>::
 Data(const IS& s)
   : tree(), seq(), root(), weight(), max_pa()
 {
-  BPMatrixPtr bp = make_bp_matrix(s);
-  convert_seq(s, seq);
-  make_tree(tree, s, *bp, th_);
-  find_root(root, tree);
-  weight.resize(seq.size());
-  fill_weight(*bp, weight);
-  find_max_parent(max_pa, tree);
+  if (folding_method_!=NO_BPMATRIX) {
+    BPMatrixPtr bp = make_bp_matrix(s);
+    convert_seq(s, seq);
+    make_tree(tree, s, *bp, th_);
+    find_root(root, tree);
+    weight.resize(seq.size());
+    fill_weight(*bp, weight);
+    find_max_parent(max_pa, tree);
+  } else {
+    convert_seq(s, seq);
+  }
 }
  
 // helper functions 

@@ -99,6 +99,7 @@ operator()(const Data& xx, const Data& yy) const
   dp_type G0(boost::extents[sz_x+1][sz_y+1]);
   std::vector<value_type> K1(sz_y+1);
   std::vector<value_type> G1(sz_y+1);
+  bool use_weight = !w_x.empty() && !w_y.empty();
 
   K0[0][0] = G0[0][0] = 1.0;
   for (uint i=1; i!=sz_x+1; ++i) {
@@ -110,15 +111,29 @@ operator()(const Data& xx, const Data& yy) const
     G0[0][j] = G0[0][j-1]*gap_;
   }
 
-  for (uint i=1; i!=sz_x+1; ++i) {
-    K1[0] = G1[0] = 0.0;
-    for (uint j=1; j!=sz_y+1; ++j) {
-      value_type v = G0[i-1][j-1]*w_x[i-1]*w_y[j-1];
-      v *= subst_score(si_subst_, x[i-1], y[j-1]);
-      K1[j] = v + K1[j-1];
-      G1[j] = v + G1[j-1]*gap_;
-      K0[i][j] = K1[j] + K0[i-1][j];
-      G0[i][j] = G1[j] + G0[i-1][j]*gap_;
+  if (use_weight) {
+    for (uint i=1; i!=sz_x+1; ++i) {
+      K1[0] = G1[0] = 0.0;
+      for (uint j=1; j!=sz_y+1; ++j) {
+	value_type v = G0[i-1][j-1]*w_x[i-1]*w_y[j-1];
+	v *= subst_score(si_subst_, x[i-1], y[j-1]);
+	K1[j] = v + K1[j-1];
+	G1[j] = v + G1[j-1]*gap_;
+	K0[i][j] = K1[j] + K0[i-1][j];
+	G0[i][j] = G1[j] + G0[i-1][j]*gap_;
+      }
+    }
+  } else {
+    for (uint i=1; i!=sz_x+1; ++i) {
+      K1[0] = G1[0] = 0.0;
+      for (uint j=1; j!=sz_y+1; ++j) {
+	value_type v = G0[i-1][j-1];
+	v *= subst_score(si_subst_, x[i-1], y[j-1]);
+	K1[j] = v + K1[j-1];
+	G1[j] = v + G1[j-1]*gap_;
+	K0[i][j] = K1[j] + K0[i-1][j];
+	G0[i][j] = G1[j] + G0[i-1][j]*gap_;
+      }
     }
   }
 
