@@ -117,6 +117,10 @@ load_fa(std::list<RNASequence>& fa, const char* filename);
 #else
 template
 bool
+load_fa(std::string& seq, file_iterator<>& fi);
+
+template
+bool
 load_fa(std::list<std::string>& fa, const char* filename);
 
 template

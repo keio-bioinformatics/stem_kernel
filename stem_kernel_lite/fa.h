@@ -3,8 +3,8 @@
 #ifndef __INC_FA_H__
 #define __INC_FA_H__
 
-#include <list>
 #include <boost/spirit/iterator/file_iterator.hpp>
+#include <list>
 #include "../common/rna.h"
 
 template < class Seq >
