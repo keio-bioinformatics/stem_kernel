@@ -25,9 +25,16 @@ dnl      fi
 dnl      AC_CHECK_LIB($mpilib, main)
 dnl      AC_CHECK_HEADER(mpi.h, AC_DEFINE([HAVE_MPI], [], [have MPI headers])) 
 dnl    ])
+#AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
+#   [ AC_CHECK_HEADER(mpi.h, AC_DEFINE([HAVE_MPI], [], [have MPI headers])) ]
 AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
-   [ AC_CHECK_HEADER(mpi.h, AC_DEFINE([HAVE_MPI], [], [have MPI headers])) ])
-
+   [ ACX_MPI([
+       AC_DEFINE([HAVE_MPI], [], [have MPI headers])
+       CC=$MPICC
+       CXX=$MPICXX
+   ]) 
+])        
+				    
 AX_BOOST_PROGRAM_OPTIONS
 if test "$ax_cv_boost_program_options" = no; then
   AC_MSG_FAILURE("the Boost::Program_Options library is unavailable")  

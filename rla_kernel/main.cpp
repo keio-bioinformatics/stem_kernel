@@ -28,10 +28,12 @@ namespace Vienna{
 #include <ViennaRNA/part_func.h>
 #include <ViennaRNA/alifold.h>
 #include <ViennaRNA/PS_dot.h>
+#if 0
     extern int pfl_fold(char *sequence, int winSize, int pairdist,
 		      float cutoff, struct plist **pl);
     extern void init_pf_foldLP(int length);
     extern void free_pf_arraysLP(void);
+#endif
   };
 };
 
@@ -67,6 +69,7 @@ uint char2rna(char c)
   }
 }
 
+#if 0
 int
 load_examples(const std::string& label, std::ifstream& in, ExampleSet& ex, 
 	      int win_sz_, int pair_sz_, double th_)
@@ -139,6 +142,7 @@ load_examples(const std::string& label, std::ifstream& in, ExampleSet& ex,
   }
   return ret;
 }
+#endif
 
 int
 load_examples(const std::string& label,

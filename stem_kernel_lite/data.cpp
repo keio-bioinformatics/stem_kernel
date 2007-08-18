@@ -27,10 +27,12 @@ extern "C" {
 #include <ViennaRNA/part_func.h>
 #include <ViennaRNA/alifold.h>
 #include <ViennaRNA/PS_dot.h>
+#if 0
   extern int pfl_fold(char *sequence, int winSize, int pairdist,
 		      float cutoff, struct plist **pl);
   extern void init_pf_foldLP(int length);
   extern void free_pf_arraysLP(void);
+#endif
 };
 };
 
@@ -284,6 +286,7 @@ make_bp_matrix_helper(const std::string &s, uint method)
     }
     break;
   case LFOLD:
+#if 0
     {
 #if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
       static boost::mutex mtx;
@@ -303,6 +306,7 @@ make_bp_matrix_helper(const std::string &s, uint method)
       return bp;
     }
     break;
+#endif
   default:
     assert(!"unsupported folding method");
     break;
