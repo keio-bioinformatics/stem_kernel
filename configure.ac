@@ -15,18 +15,7 @@ AC_CXX_HAVE_STL
 AC_PROG_RANLIB
 
 # Checks for libraries.
-#ACX_MPI
 
-dnl AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
-dnl    [ mpilib=$withval
-dnl      if test "x$mpilib" = "xyes"; then
-dnl        mpilib=mpi++
-dnl      fi
-dnl      AC_CHECK_LIB($mpilib, main)
-dnl      AC_CHECK_HEADER(mpi.h, AC_DEFINE([HAVE_MPI], [], [have MPI headers])) 
-dnl    ])
-#AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
-#   [ AC_CHECK_HEADER(mpi.h, AC_DEFINE([HAVE_MPI], [], [have MPI headers])) ]
 AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
    [ ACX_MPI([
        AC_DEFINE([HAVE_MPI], [], [have MPI headers])
@@ -36,20 +25,14 @@ AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
 ])        
 				    
 AX_BOOST_PROGRAM_OPTIONS
-if test "$ax_cv_boost_program_options" = no; then
-  AC_MSG_FAILURE("the Boost::Program_Options library is unavailable")  
-else
+if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
   BOOST_LIBS="$BOOST_LIBS -l$BOOST_PROGRAM_OPTIONS_LIB"
+else
+  AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
 fi
 AX_BOOST_THREAD
 if test "x$BOOST_THREAD_LIB" != "x"; then
   BOOST_LIBS="$BOOST_LIBS -l$BOOST_THREAD_LIB"
-fi
-AX_BOOST_PROGRAM_OPTIONS
-if test "$ax_cv_boost_program_options" = no; then
-  AC_MSG_FAILURE("the Boost::Program_Options library is unavailable")  
-else
-  BOOST_LIBS="$BOOST_LIBS -l$BOOST_PROGRAM_OPTIONS_LIB"
 fi
 AC_SUBST(BOOST_LIBS)
 
@@ -57,7 +40,7 @@ AC_CHECK_LIB(RNA, init_pf_fold)
 
 # Checks for header files.
 AC_CHECK_HEADER(boost/multi_array.hpp, ,
-                AC_MSG_FAILURE("boost/multi_array.hpp is unavailable"))
+                AC_MSG_ERROR("boost/multi_array.hpp is unavailable"))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

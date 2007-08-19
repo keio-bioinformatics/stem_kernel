@@ -1,4 +1,4 @@
-bin_PROGRAMS = string_kernel
-string_kernel_SOURCES = main.cpp string_kernel.cpp 
-string_kernel_LDADD = ${BOOST_LIBS} -L../common -lcommon
+bin_PROGRAMS = rla_kernel
+rla_kernel_SOURCES = main.cpp string_kernel.cpp 
+rla_kernel_LDADD = ../common/libcommon.a ${BOOST_LIBS}
 
