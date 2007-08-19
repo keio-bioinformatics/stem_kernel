@@ -4,6 +4,7 @@
 #define __INC_SVM_UTIL_H__
 
 #include <iosfwd>
+#include <sstream>
 #include <vector>
 #include "../libsvm/svm.h"
 
@@ -24,6 +25,7 @@ public:
 
 private:
   std::ofstream out_;
+  std::ostringstream s_out_;
   svm_model* model_;
   bool predict_probability_;
   int correct_;
@@ -34,6 +36,8 @@ private:
   double sumvv_;
   double sumyy_;
   double sumvy_;
+
+  const static int MAX = 10*1024*1024; // 10MB
 };
 
 #endif	//  __INC_SVM_UTIL_H__

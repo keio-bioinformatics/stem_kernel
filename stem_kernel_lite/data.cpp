@@ -16,7 +16,6 @@
 #include "data.h"
 #include "bpmatrix.h"
 #include "../common/cyktable.h"
-#include "../common/glob.h"
 #include "fa.h"
 #include "maf.h"
 #include "aln.h"
@@ -38,28 +37,6 @@ extern "C" {
 
 typedef boost::shared_ptr<BPMatrix> BPMatrixPtr;
 
-static uint folding_method_;
-static float th_;
-static uint win_sz_;
-static uint pair_sz_;
-
-void set_folding_method(uint method)
-{
-  folding_method_ = method;
-}
-
-void set_bp_threshold(float th)
-{
-  th_ = th;
-}
-
-void set_window_size(uint win_sz, uint pair_sz)
-{
-  win_sz_ = win_sz;
-  pair_sz_ = pair_sz;
-  if (pair_sz_==0 || win_sz_<pair_sz_)
-    pair_sz_ = win_sz_;
-}
 
 template < class Seq, class BPM, class Node >
 static
@@ -85,7 +62,7 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 template <class IS>
 static
 BPMatrixPtr
-make_bp_matrix(const IS& s)
+make_bp_matrix(const IS& s, uint folding_method)
 {
   return BPMatrixPtr();
 }
@@ -100,13 +77,13 @@ convert_seq(const IS& in, OS& out)
 
 template < class S, class IS, class N >
 Data<S,IS,N>::
-Data(const IS& s)
+Data(const IS& s, uint method, float th)
   : tree(), seq(), root(), weight(), max_pa()
 {
-  if (folding_method_!=NO_BPMATRIX) {
-    BPMatrixPtr bp = make_bp_matrix(s);
+  if (method!=NO_BPMATRIX) {
+    BPMatrixPtr bp = make_bp_matrix(s, method);
     convert_seq(s, seq);
-    make_tree(tree, s, *bp, th_);
+    make_tree(tree, s, *bp, th);
     find_root(root, tree);
     weight.resize(seq.size());
     fill_weight(*bp, weight);
@@ -317,14 +294,14 @@ make_bp_matrix_helper(const std::string &s, uint method)
 template < >
 //static
 BPMatrixPtr
-make_bp_matrix(const std::string& x)
+make_bp_matrix(const std::string& x, uint folding_method)
 {
   std::string s(x);
   boost::algorithm::to_lower(s);
-  switch (folding_method_) {
+  switch (folding_method) {
   case FOLD:
   case LFOLD:
-    return make_bp_matrix_helper(s, folding_method_);
+    return make_bp_matrix_helper(s, folding_method);
     break;
   default:
     assert(!"unsupported folding method");
@@ -336,9 +313,9 @@ make_bp_matrix(const std::string& x)
 template < >
 //static
 BPMatrixPtr
-make_bp_matrix(const MASequence<std::string>& x)
+make_bp_matrix(const MASequence<std::string>& x, uint folding_method)
 {
-  switch (folding_method_) {
+  switch (folding_method) {
   case ALIFOLD:
     {
 #if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
@@ -387,7 +364,7 @@ make_bp_matrix(const MASequence<std::string>& x)
 	boost::algorithm::to_lower(s);
 	ali.push_back(s);
 	s=erase_gap(s);
-	bps.push_back(make_bp_matrix_helper(s, folding_method_));
+	bps.push_back(make_bp_matrix_helper(s, folding_method));
       }
       BPMatrixPtr ret(new BPMatrix(ali, bps));
       return ret;
@@ -456,261 +433,101 @@ check_filetype(const char* f)
 #endif
 }
 
-MakeData<SData>::
-MakeData(const char* f)
-  : filename(f), type(check_filetype(f)), fi(f)
-{ }
-
-bool
-MakeData<SData>::
-operator()(SData& data, bool skip)
+DataLoader<SData>::
+DataLoader(const char* filename, uint method, float th)
+  : method_(method),
+    th_(th),
+    filename_(filename),
+    type_(check_filetype(filename)),
+    fi_(filename)
 {
-  if (!fi) {
+  if (!fi_) {
     std::ostringstream os;
-    os << filename << ": no such file";
+    os << filename_ << ": no such file";
     throw os.str().c_str();
   }
-  if (type==TP_FA) {
-    std::string s;
-    if (load_fa(s, fi)) {
-      if (!skip) data=SData(s);
-      return true;
-    } else {
-      return false;
-    }
-#if 0
-  } else {
-    std::ostringstream os;
-    os << filename << ": bad format";
-    throw os.str().c_str();
-#endif
-  }
-  return false;
 }
 
-MakeData<MData>::
-MakeData(const char* f)
-  : filename(f), type(check_filetype(f))
+SData*
+DataLoader<SData>::
+get()
 {
-  switch (type) {
-  case TP_ALN:
-    fi = boost::spirit::file_iterator<>(f);
-    available = fi;
+  std::string s;
+  switch (type_) {
+  case TP_FA:
+    if (load_fa(s, fi_)) {
+      return new SData(s, method_, th_);
+    } else {
+      return NULL;
+    }
     break;
+  default:
+    return NULL;
+    break;
+  }
+  return NULL;
+}
+
+DataLoader<MData>::
+DataLoader(const char* filename, uint method, float th)
+  : filename_(filename),
+    method_(method),
+    th_(th),
+    type_(check_filetype(filename))
+{
+  switch (type_) {
+  case TP_FA:
+  case TP_ALN:
   case TP_MAF:
-    available = maf.open(f);
+    fi_ = boost::spirit::file_iterator<>(filename_);
     break;
   default:
     break;
   }
-}
-  
-bool
-MakeData<MData>::
-operator()(MData& data, bool skip)
-{
-  if (!available) {
+  if (!fi_) {
     std::ostringstream os;
-    os << filename << ": no such file";
+    os << filename_ << ": no such file";
     throw os.str().c_str();
     //return false;
   }
+}
+
+MData*
+DataLoader<MData>::
+get()
+{
   bool ret=false;
   MASequence<std::string> ma;
-  switch (type) {
+  switch (type_) {
+  case TP_FA:
+    ret=load_fa(ma, fi_);
+    break;
   case TP_ALN:
-    ret=load_aln(ma, fi);
+    ret=load_aln(ma, fi_);
     break;
   case TP_MAF:
-    ret=maf.get(ma);
+    ret=load_maf(ma, fi_);
     break;
   default:
-#if 0
-    {
-      std::ostringstream os;
-      os << filename << ": bad format";
-      throw os.str().c_str();
-    }
-#endif
     break;
   }
-  if (ret && !skip) data=MData(ma);
-  return ret;
+  if (ret) return new MData(ma, method_, th_);
+  return NULL;
 }
 
-
-template <>
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, SData> >& ex,
-	      const std::vector< uint >& sv_index,
-	      uint n_th /*=1*/, uint th_no /*=0*/)
+DataLoader<SData>*
+DataLoaderFactory< DataLoader<SData> >::
+get_loader(const char* filename) const
 {
-  std::list<std::string> fa;
-  Glob glob(filename);
-  if (glob.empty()) {
-    std::ostringstream os;
-    os << filename << ": no matches found";
-    throw os.str().c_str();
-    //return false;
+  switch (check_filetype(filename)) {
+  case TP_FA:
+    return new DataLoader<SData>(filename, method_, th_);
+    break;
+  default:
+    return NULL;
+    break;
   }
-  Glob::const_iterator p;
-  for (p=glob.begin(); p!=glob.end(); ++p) {
-    if (!load_fa(fa, p->c_str())) {
-#if 0
-      std::ostringstream os;
-      os << p->c_str() << ": bad format";
-      throw os.str().c_str();
-#endif
-      return false;
-    }
-  }
-
-  uint cnt=0;
-  for (cnt=0; cnt!=sv_index.size(); ++cnt) {
-    if (sv_index[cnt]>=ex.size()) break;
-  }
-
-  std::list<std::string>::const_iterator x;
-  for (x=fa.begin(); x!=fa.end(); ++x) {
-    if (sv_index[cnt]==ex.size()) {
-      if (cnt++%n_th==th_no)
-	ex.push_back(std::make_pair(label,SData(*x)));
-      else
-	ex.push_back(std::make_pair(label,SData()));
-    } else {
-      ex.push_back(std::make_pair(label,SData()));
-    }
-  }
-  return true;
-}
-
-template <>
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, SData> >& ex,
-	      uint n_th /*=1*/, uint th_no /*=0*/)
-{
-  std::list<std::string> fa;
-  Glob glob(filename);
-  if (glob.empty()) {
-    std::ostringstream os;
-    os << filename << ": no matches found";
-    throw os.str().c_str();
-    //return false;
-  } 
-  Glob::const_iterator p;
-  for (p=glob.begin(); p!=glob.end(); ++p) {
-    if (!load_fa(fa, p->c_str())) {
-#if 0
-      std::ostringstream os;
-      os << p->c_str() << ": bad format";
-      throw os.str().c_str();
-#endif
-      return false;
-    }
-  }
-
-  std::list<std::string>::const_iterator x;
-  for (x=fa.begin(); x!=fa.end(); ++x) {
-    if (ex.size()%n_th==th_no) {
-      SData e(*x);
-      ex.push_back(std::make_pair(label,e));
-    } else {
-      ex.push_back(std::make_pair(label,SData()));
-    }
-  }
-  return true;
-}
-
-template <>
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, MData> >& ex,
-	      uint n_th /*=1*/, uint th_no /*=0*/)
-{
-  std::list< MASequence<std::string> > ma;
-  Glob glob(filename);
-  if (glob.empty()) {
-    std::ostringstream os;
-    os << filename << ": no matches found";
-    throw os.str().c_str();
-    //return false;
-  }
-  Glob::const_iterator p;
-  for (p=glob.begin(); p!=glob.end(); ++p) {
-    if (!load_maf(ma, p->c_str()) &&
-	!load_aln(ma, p->c_str()) &&
-	!load_fa(ma, p->c_str())) {
-#if 0
-      std::ostringstream os;
-      os << p->c_str() << ": bad format";
-      throw os.str().c_str();
-#endif
-      return false;
-    }
-  }
-
-  std::list< MASequence<std::string> >::const_iterator x;
-  for (x=ma.begin(); x!=ma.end(); ++x) {
-    if (ex.size()%n_th==th_no)
-      ex.push_back(std::make_pair(label,MData(*x)));
-    else
-      ex.push_back(std::make_pair(label,MData()));
-  }
-  return true;
-}
-
-template <>
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, MData> >& ex,
-	      const std::vector< uint >& sv_index,
-	      uint n_th /*=1*/, uint th_no /*=0*/)
-{
-  std::list< MASequence<std::string> > ma;
-  Glob glob(filename);
-  if (glob.empty()) {
-    std::ostringstream os;
-    os << filename << ": no matches found";
-    throw os.str().c_str();
-    //return false;
-  }
-  Glob::const_iterator p;
-  for (p=glob.begin(); p!=glob.end(); ++p) {
-    if (!load_maf(ma, p->c_str()) &&
-	!load_aln(ma, p->c_str()) &&
-	!load_fa(ma, p->c_str())) {
-#if 0
-      std::ostringstream os;
-      os << p->c_str() << ": bad format";
-      throw os.str().c_str();
-#endif
-      return false;
-    }
-  }
-
-  uint cnt=0;
-  for (cnt=0; cnt!=sv_index.size(); ++cnt) {
-    if (sv_index[cnt]>=ex.size()) break;
-  }
-
-  std::list< MASequence<std::string> >::const_iterator x;
-  for (x=ma.begin(); x!=ma.end(); ++x) {
-    if (sv_index[cnt]==ex.size()) {
-      if (cnt++%n_th==th_no)
-	ex.push_back(std::make_pair(label,MData(*x)));
-      else
-	ex.push_back(std::make_pair(label,MData()));
-    } else {
-      ex.push_back(std::make_pair(label,MData()));
-    }
-  }
-  return true;
+  return NULL;
 }
 
 // instantiation

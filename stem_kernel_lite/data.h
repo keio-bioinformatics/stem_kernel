@@ -6,7 +6,6 @@
 #include <vector>
 #include <boost/spirit/iterator/file_iterator.hpp>
 #include "dag.h"
-#include "maf.h"
 
 template < class S, class IS, class N = DAG::Node<DAG::Edge> >
 struct Data {
@@ -22,7 +21,7 @@ struct Data {
 
   Data() : tree(), seq(), root(), weight(), max_pa() { }
 
-  Data(const IS& seq);
+  Data(const IS& seq, uint method, float th);
 
   Data(const Data& x)
     : tree(x.tree), seq(x.seq), root(x.root),
@@ -42,36 +41,7 @@ struct Col
 };
 
 enum { ALIFOLD, FOLD, LFOLD, NO_BPMATRIX };	// available methods
-void set_folding_method(uint method);
-
-void set_bp_threshold(float th);
-
-void set_window_size(uint win_sz, uint pair_sz);
   
-template < class Data >
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, Data> >& ex,
-	      uint n_th=1, uint th_no=0);
-
-template < class Data >
-bool
-load_examples(const std::string& label,
-	      const char* filename,
-	      std::vector< std::pair<std::string, Data> >& ex,
-	      const std::vector< uint >& sv_index,
-	      uint n_th=1, uint th_no=0);
-
-template < class Data >
-struct MakeData
-{
-  MakeData(const char* f) { }
-  bool operator()(Data& data)
-  {
-    return false;
-  }
-};
 
 #if 0
 typedef Data<std::string> SData;
@@ -82,29 +52,103 @@ typedef Data<RNASequence,std::string> SData;
 typedef Data< std::vector<Col>,MASequence<std::string> > MData;
 #endif
 
-template < >
-struct MakeData<SData>
+template < class D >
+class DataLoader
 {
-  std::string filename;
-  uint type;
-  boost::spirit::file_iterator<> fi;
+public:
+  typedef D Data;
+
+public:
+  DataLoader(const char* filename, uint method, float th) { };
+
+  Data* get() { return NULL; }
+
+private:
+  uint method_;
+  float th_;
+};
+
+template < >
+class DataLoader<SData>
+{
+public:
+  typedef SData Data;
+
+public:
+  DataLoader(const char* filename, uint method, float th);
+  Data* get();
+
+private:
+  uint method_;
+  float th_;
+  std::string filename_;
+  uint type_;
+  boost::spirit::file_iterator<> fi_;
+};
+
+template < >
+class DataLoader<MData>
+{
+public:
+  typedef MData Data;
+
+public:
+  DataLoader(const char* filename, uint method, float th);
+
+  Data* get();
+
+private:
+  uint method_;
+  float th_;
+  std::string filename_;
+  uint type_;
+  boost::spirit::file_iterator<> fi_;
+};
+
+template < class LD >
+class DataLoaderFactory
+{
+public:
+  typedef LD Loader;
+  typedef typename Loader::Data Data;
+
+public:
+  DataLoaderFactory(uint method, float th)
+    : method_(method), th_(th)
+  {
+  }
   
-  MakeData(const char* f);
-  bool operator()(SData& data, bool skip=false);
+  Loader* get_loader(const char* filename) const
+  {
+    return new Loader(filename, method_, th_);
+  }
+
+private:
+  uint method_;
+  float th_;
 };
 
 template < >
-struct MakeData<MData>
+class DataLoaderFactory< DataLoader<SData> >
 {
-  std::string filename;
-  uint type;
-  boost::spirit::file_iterator<> fi;
-  MAF maf;
-  bool available;
+public:
+  typedef DataLoader<SData> Loader;
+  typedef Loader::Data Data;
 
-  MakeData(const char* f);
-  bool operator()(MData& data, bool skip=false);
+public:
+  DataLoaderFactory(uint method, float th)
+    : method_(method), th_(th)
+  {
+  }
+  
+  Loader* get_loader(const char* filename) const;
+
+private:
+  uint method_;
+  float th_;
 };
+
+
 
 #endif	// __INC_DATA_H__
 

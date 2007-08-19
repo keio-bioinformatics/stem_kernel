@@ -13,6 +13,10 @@ load_fa(Seq& s, boost::spirit::file_iterator<>& fi);
 
 template < class Seq >
 bool
+load_fa(MASequence<Seq>& ma, boost::spirit::file_iterator<>& fi);
+
+template < class Seq >
+bool
 load_fa(std::list<Seq>& ma, const char* filename);
 
 template < class Seq >

@@ -12,6 +12,7 @@ SVMPredict::
 SVMPredict(const char* output_file, const char* model_file,
 	   bool predict_probability)
   : out_(output_file),
+    s_out_(),
     model_(NULL),
     predict_probability_(predict_probability),
     correct_(0), total_(0), error_(0),
@@ -32,6 +33,7 @@ SVMPredict(const char* output_file, const char* model_file,
 SVMPredict::
 ~SVMPredict()
 {
+  out_ << s_out_;
   if (model_) svm_destroy_model(model_);
 }
 
@@ -45,21 +47,27 @@ do_svm_predict(double target, const std::vector<svm_node>& x)
   std::vector<double> prob_estimates(nr_class);
   if (predict_probability_ && (svm_type==C_SVC || svm_type==NU_SVC)) {
     v = svm_predict_probability(model_, &x[0], &prob_estimates[0]);
-    out_ << v << " ";
+    s_out_ << v << " ";
     std::copy(prob_estimates.begin(), prob_estimates.end(),
-	      std::ostream_iterator<double>(out_, " "));
-    out_ << std::endl;
+	      std::ostream_iterator<double>(s_out_, " "));
+    s_out_ << std::endl;
   } else {
     v = svm_predict(model_, &x[0]);
     std::vector<double> dec_values(nr_class*(nr_class-1)/2);
     svm_predict_values(model_, &x[0], &dec_values[0]);
     uint pos=0;
-    out_ << target << " ";
+    s_out_ << target << " ";
     for(uint i=0; i!=nr_class; ++i)
       for(uint j=i+1; j!=nr_class; ++j)
-	out_ << dec_values[pos++] << " ";
-    out_ << std::endl;
+	s_out_ << dec_values[pos++] << " ";
+    s_out_ << std::endl;
   }
+
+  if (s_out_.str().size()>MAX) {
+    out_ << s_out_.str();
+    s_out_.str("");
+  }
+
   if(v == target)
     ++correct_;
   error_ += (v-target)*(v-target);
