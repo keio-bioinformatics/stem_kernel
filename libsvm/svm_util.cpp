@@ -33,7 +33,7 @@ SVMPredict(const char* output_file, const char* model_file,
 SVMPredict::
 ~SVMPredict()
 {
-  out_ << s_out_;
+  out_ << s_out_.str();
   if (model_) svm_destroy_model(model_);
 }
 
