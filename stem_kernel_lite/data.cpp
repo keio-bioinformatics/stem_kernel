@@ -16,9 +16,9 @@
 #include "data.h"
 #include "bpmatrix.h"
 #include "../common/cyktable.h"
-#include "fa.h"
-#include "maf.h"
-#include "aln.h"
+#include "../common/fa.h"
+#include "../common/maf.h"
+#include "../common/aln.h"
 
 namespace Vienna {
 extern "C" {
@@ -470,10 +470,11 @@ get()
 
 DataLoader<MData>::
 DataLoader(const char* filename, uint method, float th)
-  : filename_(filename),
-    method_(method),
+  : method_(method),
     th_(th),
-    type_(check_filetype(filename))
+    filename_(filename),
+    type_(check_filetype(filename)),
+    fi_()
 {
   switch (type_) {
   case TP_FA:

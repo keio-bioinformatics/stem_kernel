@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #include "framework.h"
 
@@ -29,9 +29,12 @@ add_options(boost::program_options::options_description& opts)
     ("predict",
      po::value< std::vector<std::string> >(&predict_output),
      "output file name of prediction results")
+#if 0    
     ("skip",
      po::value<uint>(&skip),
-     "skip lines");
+     "skip lines")
+#endif
+    ;
 }
 
 void
