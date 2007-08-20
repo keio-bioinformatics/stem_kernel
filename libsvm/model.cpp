@@ -1,6 +1,6 @@
 // $Id$
 
-#include "model.h"
+#include "svm_util.h"
 #include <list>
 #include <string>
 #include <sstream>

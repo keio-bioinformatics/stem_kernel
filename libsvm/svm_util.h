@@ -4,7 +4,9 @@
 #define __INC_SVM_UTIL_H__
 
 #include <iosfwd>
+#include <string>
 #include <sstream>
+#include <fstream>
 #include <vector>
 #include "../libsvm/svm.h"
 
@@ -37,8 +39,12 @@ private:
   double sumyy_;
   double sumvy_;
 
-  const static int MAX = 10*1024*1024; // 10MB
+  const static uint MAX = 10*1024*1024; // 10MB
 };
+
+bool
+load_sv_index(std::vector<uint>& sv_index,
+	      const std::vector<std::string>& models);
 
 #endif	//  __INC_SVM_UTIL_H__
 
