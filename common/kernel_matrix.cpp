@@ -487,13 +487,18 @@ calculate(const ExampleSet& train,
   for (uint i=0; i!=n; ++i) label_[i]=train[i].first;
 
 #ifdef HAVE_BOOST_THREAD
-  std::vector<boost::thread*> th(n_th);
-  for (uint t=0; t!=n_th; ++t) {
-    th[t]=new boost::thread(CalcMatrix(n_th, t, train, kernel, *this));
-  }
-  for (uint t=0; t!=n_th; ++t) {
-    th[t]->join();
-    delete th[t];
+  if (n_th>1) {
+    std::vector<boost::thread*> th(n_th);
+    for (uint t=0; t!=n_th; ++t) {
+      th[t]=new boost::thread(CalcMatrix(n_th, t, train, kernel, *this));
+    }
+    for (uint t=0; t!=n_th; ++t) {
+      th[t]->join();
+      delete th[t];
+    }
+  } else {
+    CalcMatrix calc(1, 0, train, kernel, *this);
+    calc();
   }
 #else  // HAVE_BOOST_THREAD
   CalcMatrix calc(1, 0, train, kernel, *this);
@@ -538,13 +543,18 @@ diagonal(std::vector<value_type>& diag, const ExampleSet& train,
   typedef CalcDiagonal< Kernel, ExampleSet > CalcDiag;
   //diag.resize(train.size());
 #ifdef HAVE_BOOST_THREAD
-  std::vector<boost::thread*> th(n_th);
-  for (uint t=0; t!=n_th; ++t) {
-    th[t] = new boost::thread(CalcDiag(n_th, t, train, sv_index, kernel, diag));
-  }
-  for (uint t=0; t!=n_th; ++t) {
-    th[t]->join();
-    delete th[t];
+  if (n_th>1) {
+    std::vector<boost::thread*> th(n_th);
+    for (uint t=0; t!=n_th; ++t) {
+      th[t] = new boost::thread(CalcDiag(n_th, t, train, sv_index, kernel, diag));
+    }
+    for (uint t=0; t!=n_th; ++t) {
+      th[t]->join();
+      delete th[t];
+    }
+  } else {
+    CalcDiag calc_diag(1, 0, train, sv_index, kernel, diag);
+    calc_diag();
   }
 #else  // HAVE_BOOST_THREAD
   CalcDiag calc_diag(1, 0, train, sv_index, kernel, diag);
@@ -584,14 +594,19 @@ calculate(std::vector<value_type>& matrix,
   typedef CalcTestMatrix< Kernel, ExampleSet > CalcMatrix;
   //matrix.resize(train.size());
 #ifdef HAVE_BOOST_THREAD
-  std::vector<boost::thread*> th(n_th);
-  for (uint t=0; t!=n_th; ++t) {
-    th[t] = new boost::thread(CalcMatrix(n_th, t, data, train, sv_index,
-					 kernel, matrix, data_self));
-  }
-  for (uint t=0; t!=n_th; ++t) {
-    th[t]->join();
-    delete th[t];
+  if (n_th>1) {
+    std::vector<boost::thread*> th(n_th);
+    for (uint t=0; t!=n_th; ++t) {
+      th[t] = new boost::thread(CalcMatrix(n_th, t, data, train, sv_index,
+					   kernel, matrix, data_self));
+    }
+    for (uint t=0; t!=n_th; ++t) {
+      th[t]->join();
+      delete th[t];
+    }
+  } else {
+    CalcMatrix calc(1, 0, data, train, sv_index, kernel, matrix, data_self);
+    calc();
   }
 #else
   CalcMatrix calc(1, 0, data, train, sv_index, kernel, matrix, data_self);
