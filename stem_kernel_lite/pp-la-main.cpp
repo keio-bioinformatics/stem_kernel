@@ -11,9 +11,9 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include "../common/framework.h"
-#include "string_kernel.h"
 #include "data.h"
 #include "../common/rna.h"
+#include "def_kernel.h"
 
 using namespace boost::lambda;
 namespace po = boost::program_options;
@@ -21,10 +21,6 @@ namespace po = boost::program_options;
 int
 main(int argc, char** argv)
 {
-  typedef DataLoaderFactory<DataLoader<MData> > LDF;
-  typedef std::pair<std::string, MData> Example;
-  typedef std::vector< Example > ExampleSet;
-  typedef StringKernel<double,MData> SuStringKernel;
 
 #ifdef HAVE_MPI
   MPIState mpi_state(argc, argv);
@@ -38,7 +34,7 @@ main(int argc, char** argv)
   po::options_description desc("Options");
   desc.add_options()("help,h", "show this message");
   opts.add_options(desc);
-  
+
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
     ("no-ribosum", "do not use the RIBOSUM substitution matrix")
@@ -54,10 +50,10 @@ main(int argc, char** argv)
     options(desc).allow_unregistered().run();
   std::vector<std::string> extra_args =
     collect_unrecognized(parsed.options, po::include_positional);
-  std::vector<po::option>::iterator new_end=
+  std::vector<po::option>::iterator new_end =
     std::remove_if(parsed.options.begin(), parsed.options.end(),
 		   bind(&po::option::unregistered, _1) );
-  parsed.options.erase(new_end,  parsed.options.end());
+  parsed.options.erase(new_end, parsed.options.end());
   po::store(parsed, vm);
   po::notify(vm);
 
@@ -75,6 +71,8 @@ main(int argc, char** argv)
   bool res = false;
   try {
     if (!res) {
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
+      typedef StringKernel<double,MData> SuStringKernel;
       LDF ldf;
       SuStringKernel kernel(loop_gap, alpha);
       App<SuStringKernel,LDF> app(kernel, ldf, opts);

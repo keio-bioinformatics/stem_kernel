@@ -1,4 +1,4 @@
-// $Id: main.cpp 209 2007-08-20 07:49:21Z satoken $
+// $Id: main.cpp 215 2007-08-21 11:51:34Z satoken $
 
 #ifdef HAVE_CONFIG_H
 #include "../config.h"
@@ -11,12 +11,9 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include "../common/framework.h"
-#include "score_table.h"
-#include "stem_kernel.h"
-#include "string_kernel.h"
-#include "ss_kernel.h"
 #include "data.h"
 #include "../common/rna.h"
+#include "def_kernel.h"
 
 using namespace boost::lambda;
 namespace po = boost::program_options;
@@ -24,14 +21,6 @@ namespace po = boost::program_options;
 int
 main(int argc, char** argv)
 {
-  typedef DataLoaderFactory<DataLoader<MData> > LDF;
-  typedef std::pair<std::string, MData> Example;
-  typedef std::vector< Example > ExampleSet;
-  typedef SimpleScoreTable<MData,double> SiScoreTable;
-  typedef StemKernel<SiScoreTable, MData> SiKernel;
-  typedef SubstScoreTable<MData,double> SuScoreTable;
-  typedef StemKernel<SuScoreTable, MData> SuKernel;
-  typedef StemStrKernel<SuScoreTable, MData> SSKernel;
 
 #ifdef HAVE_MPI
   MPIState mpi_state(argc, argv);
@@ -47,6 +36,7 @@ main(int argc, char** argv)
   double loop_gap;
   bool use_string=false;
   bool use_ribosum=false;
+  bool use_log=false;
   uint len_band=0;
 
   // parse command line options
@@ -71,8 +61,7 @@ main(int argc, char** argv)
     ("length-band",
      po::value<uint>(&len_band)->default_value(0),
      "set the band of difference of the length between bases")
-    ("no-ribosum",
-     "do not use the RIBOSUM substitution matrix")
+    ("no-ribosum", "do not use the RIBOSUM substitution matrix")
     ("no-string",
      "do not convolute the string kernel with base pair probabilities")
     ("alpha,a",
@@ -84,9 +73,11 @@ main(int argc, char** argv)
     ("loop-gap,G",
      po::value<double>(&loop_gap)->default_value(0.6),
      "set the gap weight for loop regions")
+    ("log",
+     po::value<bool>(&use_log)->zero_tokens()->default_value(false),
+     "use the logarithm of the kernel")
     ;
 
-  
   desc.add(k_desc).add(f_desc);
   po::variables_map vm;
   po::parsed_options parsed =
@@ -118,21 +109,36 @@ main(int argc, char** argv)
   bool res = false;
   try {
     if (!res) {
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
       LDF ldf(bp_opts);
       if (use_string) {
-	SuScoreTable st(gap, beta, loop_gap);
-	SSKernel kernel(st, loop_gap, alpha, len_band);
-	App<SSKernel,LDF> app(kernel, ldf, opts);
-	res = app.execute();
+	if (!use_log) {
+	  SuStemStrKernel<double,MData>
+	    kernel(alpha, beta, gap, loop_gap, len_band);
+	  App<SuStemStrKernel<double,MData>, LDF> app(kernel, ldf, opts);
+	  res = app.execute();
+	} else {
+	  LSuStemStrKernel<double, MData>
+	    kernel(alpha, beta, gap, loop_gap, len_band);
+	  App<LSuStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
+	  res = app.execute();
+	}
       } else if (use_ribosum) {
-	SuScoreTable st(gap, beta, loop_gap);
-	SuKernel kernel(st, len_band);
-	App<SuKernel,LDF> app(kernel, ldf, opts);
-	res = app.execute();
+	if (!use_log) {
+	  SuStemKernel<double, MData>
+	    kernel(gap, beta, loop_gap, len_band);
+	  App<SuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
+	  res = app.execute();
+	} else {
+	  LSuStemKernel<double, MData>
+	    kernel(gap, beta, loop_gap, len_band);
+	  App<LSuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
+	  res = app.execute();
+	}
       } else {
-	SiScoreTable st(gap, stack, covar, loop_gap);
-	SiKernel kernel(st, len_band);
-	App<SiKernel,LDF> app(kernel, ldf, opts);
+	SiStemKernel<double, MData>
+	  kernel(gap, stack, covar, loop_gap, len_band);
+	App<SiStemKernel<double, MData>,LDF> app(kernel, ldf, opts);
 	res = app.execute();
       }
     }
