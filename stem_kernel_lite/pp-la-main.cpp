@@ -6,18 +6,13 @@
 
 #include <iostream>
 #include <string>
-//#include <cstring>
 #include <cassert>
-//#include <sys/types.h>
-//#include <unistd.h>
 #include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include "../common/framework.h"
 #include "string_kernel.h"
 #include "data.h"
-//#include "bpmatrix.h"
 #include "../common/rna.h"
 
 using namespace boost::lambda;
@@ -41,15 +36,18 @@ main(int argc, char** argv)
 
   // parse command line options
   po::options_description desc("Options");
-  desc.add_options()
-    ("help,h", "show this message");
+  desc.add_options()("help,h", "show this message");
   opts.add_options(desc);
-  desc.add_options()
+  
+  po::options_description k_desc("Kernel Options");
+  k_desc.add_options()
     ("no-ribosum", "do not use the RIBOSUM substitution matrix")
     ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
      "set the loop weight of the RIBOSUM for the string kernel")
     ("loop-gap,G", po::value<double>(&loop_gap)->default_value(0.6),
      "set the gap weight for loop regions");
+
+  desc.add(k_desc);
   po::variables_map vm;
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).
@@ -77,7 +75,7 @@ main(int argc, char** argv)
   bool res = false;
   try {
     if (!res) {
-      LDF ldf(NO_BPMATRIX, 0.0);
+      LDF ldf;
       SuStringKernel kernel(loop_gap, alpha);
       App<SuStringKernel,LDF> app(kernel, ldf, opts);
       res = app.execute();

@@ -1,5 +1,8 @@
 // $Id$
 
+#ifdef HAVE_CONFIG_H
+#include "../config.h"
+#endif
 #include "aln.h"
 #include <iostream>
 #include <sstream>

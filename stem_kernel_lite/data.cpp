@@ -8,11 +8,6 @@
 #include <vector>
 #include <list>
 #include <sstream>
-#include <boost/shared_ptr.hpp>
-#include <boost/algorithm/string.hpp>
-#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
-#include <boost/thread.hpp>
-#endif
 #include "data.h"
 #include "bpmatrix.h"
 #include "../common/cyktable.h"
@@ -20,24 +15,7 @@
 #include "../common/maf.h"
 #include "../common/aln.h"
 
-namespace Vienna {
-extern "C" {
-#include <ViennaRNA/fold_vars.h>
-#include <ViennaRNA/part_func.h>
-#include <ViennaRNA/alifold.h>
-#include <ViennaRNA/PS_dot.h>
-#if 0
-  extern int pfl_fold(char *sequence, int winSize, int pairdist,
-		      float cutoff, struct plist **pl);
-  extern void init_pf_foldLP(int length);
-  extern void free_pf_arraysLP(void);
-#endif
-};
-};
-
-typedef boost::shared_ptr<BPMatrix> BPMatrixPtr;
-
-
+// helpers
 template < class Seq, class BPM, class Node >
 static
 void
@@ -59,14 +37,6 @@ static
 void
 find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 
-template <class IS>
-static
-BPMatrixPtr
-make_bp_matrix(const IS& s, uint folding_method)
-{
-  return BPMatrixPtr();
-}
-
 template <class IS, class OS>
 static
 void
@@ -77,22 +47,26 @@ convert_seq(const IS& in, OS& out)
 
 template < class S, class IS, class N >
 Data<S,IS,N>::
-Data(const IS& s, uint method, float th)
+Data(const IS& s, const BPMatrix::Options& opts)
   : tree(), seq(), root(), weight(), max_pa()
 {
-  if (method!=NO_BPMATRIX) {
-    BPMatrixPtr bp = make_bp_matrix(s, method);
-    convert_seq(s, seq);
-    make_tree(tree, s, *bp, th);
-    find_root(root, tree);
-    weight.resize(seq.size());
-    fill_weight(*bp, weight);
-    find_max_parent(max_pa, tree);
-  } else {
-    convert_seq(s, seq);
-  }
+  BPMatrix bp(s, opts);
+  convert_seq(s, seq);
+  make_tree(tree, s, bp, opts.th);
+  find_root(root, tree);
+  weight.resize(seq.size());
+  fill_weight(bp, weight);
+  find_max_parent(max_pa, tree);
 }
  
+template < class S, class IS, class N >
+Data<S,IS,N>::
+Data(const IS& s)
+  : tree(), seq(), root(), weight(), max_pa()
+{
+  convert_seq(s, seq);
+}
+
 // helper functions 
 
 template < class BPM, class Seq, class Node >
@@ -243,141 +217,6 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x)
   }
 }
 
-static
-BPMatrixPtr
-make_bp_matrix_helper(const std::string &s, uint method)
-{
-  switch (method) {
-  case FOLD:
-    {
-#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
-      static boost::mutex mtx;
-      boost::mutex::scoped_lock lock(mtx);
-#endif
-      Vienna::pf_scale = -1;
-      Vienna::init_pf_fold(s.size());
-      Vienna::pf_fold(const_cast<char*>(s.c_str()), NULL);
-      BPMatrixPtr bp(new BPMatrix(s.size(), Vienna::pr, Vienna::iindx));
-      Vienna::free_pf_arrays();
-      return bp;
-    }
-    break;
-  case LFOLD:
-#if 0
-    {
-#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
-      static boost::mutex mtx;
-      boost::mutex::scoped_lock lock(mtx);
-#endif
-      Vienna::plist *pl;
-      Vienna::pf_scale = -1;
-      uint wsz = s.size()<win_sz_ ? s.size() : win_sz_;
-      uint psz = wsz<pair_sz_ ? wsz : pair_sz_;
-      Vienna::init_pf_foldLP(s.size());
-      Vienna::pfl_fold(const_cast<char*>(s.c_str()), wsz, psz, th_, &pl);
-      BPMatrixPtr bp(new BPMatrix(s.size()));
-      for (uint k=0; pl[k].i!=0; ++k)
-	(*bp)(pl[k].i, pl[k].j) = pl[k].p;
-      free(pl);
-      Vienna::free_pf_arraysLP();
-      return bp;
-    }
-    break;
-#endif
-  default:
-    assert(!"unsupported folding method");
-    break;
-  }
-  return BPMatrixPtr();
-}
-
-template < >
-//static
-BPMatrixPtr
-make_bp_matrix(const std::string& x, uint folding_method)
-{
-  std::string s(x);
-  boost::algorithm::to_lower(s);
-  switch (folding_method) {
-  case FOLD:
-  case LFOLD:
-    return make_bp_matrix_helper(s, folding_method);
-    break;
-  default:
-    assert(!"unsupported folding method");
-    break;
-  }
-  return BPMatrixPtr();
-}
-
-template < >
-//static
-BPMatrixPtr
-make_bp_matrix(const MASequence<std::string>& x, uint folding_method)
-{
-  switch (folding_method) {
-  case ALIFOLD:
-    {
-#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
-      static boost::mutex mtx;
-      boost::mutex::scoped_lock lock(mtx);
-#endif
-      // prepare an alignment
-      uint length = x.get_seq(0).size();
-      char** seqs = new char*[x.n_seqs()+1];
-      seqs[x.n_seqs()]=NULL;
-      for (uint i=0; i!=x.n_seqs(); ++i) {
-	std::string s(x.get_seq(i));
-	assert(s.size()==length);
-	seqs[i] = new char[length+1];
-	strcpy(seqs[i], s.c_str());
-      }
-      {
-	// scaling parameters to avoid overflow
-	char* str = new char[length+1];
-	double min_en = Vienna::alifold(seqs, str);
-	delete[] str;
-	Vienna::free_alifold_arrays();
-	double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
-	Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
-      }
-      // build a base pair probablity matrix
-      Vienna::pair_info* pi;
-      Vienna::alipf_fold(seqs, NULL, &pi);
-      BPMatrixPtr ret(new BPMatrix(length));
-      for (uint k=0; pi[k].i!=0; ++k)
-	(*ret)(pi[k].i, pi[k].j) = pi[k].p;
-      free(pi);
-      for (uint i=0; i!=x.n_seqs(); ++i) delete[] seqs[i];
-      delete[] seqs;
-      return ret;
-    }
-    break;
-
-  case FOLD:
-  case LFOLD:
-    {
-      std::list<std::string> ali;
-      std::list<BPMatrixPtr> bps;
-      for (uint i=0; i!=x.n_seqs(); ++i) {
-	std::string s(x.get_seq(i));
-	boost::algorithm::to_lower(s);
-	ali.push_back(s);
-	s=erase_gap(s);
-	bps.push_back(make_bp_matrix_helper(s, folding_method));
-      }
-      BPMatrixPtr ret(new BPMatrix(ali, bps));
-      return ret;
-    }
-    break;
-  default:
-    assert(!"unsupported folding method");
-    break;
-  }
-
-  return BPMatrixPtr();
-}
-
 template <>
 //static
 void
@@ -434,9 +273,10 @@ check_filetype(const char* f)
 }
 
 DataLoader<SData>::
-DataLoader(const char* filename, uint method, float th)
-  : method_(method),
-    th_(th),
+DataLoader(const char* filename,
+	   const BPMatrix::Options& bp_opts, bool use_bp)
+  : bp_opts_(bp_opts),
+    use_bp_(use_bp),
     filename_(filename),
     type_(check_filetype(filename)),
     fi_(filename)
@@ -456,7 +296,10 @@ get()
   switch (type_) {
   case TP_FA:
     if (load_fa(s, fi_)) {
-      return new SData(s, method_, th_);
+      if (use_bp_)
+	return new SData(s, bp_opts_);
+      else
+	return new SData(s);
     } else {
       return NULL;
     }
@@ -469,9 +312,10 @@ get()
 }
 
 DataLoader<MData>::
-DataLoader(const char* filename, uint method, float th)
-  : method_(method),
-    th_(th),
+DataLoader(const char* filename,
+	   const BPMatrix::Options& bp_opts, bool use_bp)
+  : bp_opts_(bp_opts),
+    use_bp_(use_bp),
     filename_(filename),
     type_(check_filetype(filename)),
     fi_()
@@ -512,7 +356,12 @@ get()
   default:
     break;
   }
-  if (ret) return new MData(ma, method_, th_);
+  if (ret) {
+    if (use_bp_)
+      return new MData(ma, bp_opts_);
+    else
+      return new MData(ma);
+  }
   return NULL;
 }
 
@@ -522,7 +371,7 @@ get_loader(const char* filename) const
 {
   switch (check_filetype(filename)) {
   case TP_FA:
-    return new DataLoader<SData>(filename, method_, th_);
+    return new DataLoader<SData>(filename, bp_opts_, use_bp_);
     break;
   default:
     return NULL;

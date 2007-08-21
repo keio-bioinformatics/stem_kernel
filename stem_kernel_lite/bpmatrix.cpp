@@ -6,61 +6,215 @@
 #include "bpmatrix.h"
 #include "../common/rna.h"
 #include <cmath>
+#include <stack>
 #include <algorithm>
+#include <boost/shared_ptr.hpp>
+#include <boost/algorithm/string.hpp>
 
-BPMatrix::
-BPMatrix(uint sz)
-#ifdef HAVE_BOOST_RANDOM
-  : sz_(sz),
-    table_(sz_+1),
-    rand_(RNG(time(NULL)), Dist(0,1))
-#else
-  : sz_(sz),
-    table_(sz_+1)
+#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
+#include <boost/thread.hpp>
 #endif
+
+namespace Vienna {
+extern "C" {
+#include <ViennaRNA/fold_vars.h>
+#include <ViennaRNA/part_func.h>
+#include <ViennaRNA/alifold.h>
+#include <ViennaRNA/PS_dot.h>
+#if 0
+  extern int pfl_fold(char *sequence, int winSize, int pairdist,
+		      float cutoff, struct plist **pl);
+  extern void init_pf_foldLP(int length);
+  extern void free_pf_arraysLP(void);
+#endif
+  extern char* pbacktrack(char *sequence);
+  extern int   st_back;
+};
+};
+
+typedef boost::shared_ptr<BPMatrix> BPMatrixPtr;
+namespace po = boost::program_options;
+
+// options
+void
+BPMatrix::Options::
+add_options(po::options_description& desc)
 {
-  table_.fill(0.0);
+  desc.add_options()
+    ("basepair,p",
+     po::value<float>(&th)->default_value(0.01),
+     "set the threshold of basepairing probability")
+    ("use-alifold",
+     po::value<bool>(&alifold)->zero_tokens()->default_value(false),
+     "use pf_alifold for producing base pairing probability matrices")
+    ("sampling",
+     po::value<uint>(&n_samples)->default_value(0),
+     "use stochastic sampling for producing base pairing probability matrices")
+#if 0
+    ("window-size,w", po::value<uint>(&win_sz)->default_value(0),
+     "set the window size for folding RNAs")
+    ("pair-width", po::value<uint>(&pair_sz)->default_value(0),
+     "set the pair width for pairing bases")
+#endif
+    ;
 }
 
-template < class V >
+uint
+BPMatrix::Options::
+method() const
+{
+  uint m=FOLD;
+  if (alifold) m=ALIFOLD;
+  if (n_samples>0) m=SFOLD;
+  return m;
+}
+
+// helpers
+static
+bool
+make_bp_matrix(BPMatrix& bp, const std::string &x,
+	       const BPMatrix::Options& opts);
+
+static
+bool
+make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
+	       const BPMatrix::Options& opts);
+
+
 BPMatrix::
-BPMatrix(uint sz, const V* pr, const int* iindx)
-#ifdef HAVE_BOOST_RANDOM
-  : sz_(sz),
-    table_(sz_+1),
-    rand_(RNG(time(NULL)), Dist(0,1))
-#else
-  : sz_(sz),
-    table_(sz_+1)
-#endif
+BPMatrix(const std::string& s, const Options& opts)
+  : sz_(s.size()), table_(sz_+1)
 {
   table_.fill(0.0);
-  for (uint j=2; j!=sz_+1; ++j) {
-    for (uint i=j-1; ; --i) {
-      table_(i,j) = pr[iindx[i]-j];
-      if (i==1) break;
+
+  make_bp_matrix(*this, s, opts);
+}
+
+BPMatrix::
+BPMatrix(const MASequence<std::string>& ma, const Options& opts)
+  : sz_(ma.size()), table_(sz_+1)
+{
+  table_.fill(0.0);
+
+  make_bp_matrix(*this, ma, opts);
+}
+
+// folding for sigle sequences
+static
+bool
+make_bp_matrix(BPMatrix& bp, const std::string &x,
+	       const BPMatrix::Options& opts)
+{
+  std::string s(x);
+  boost::algorithm::to_lower(s);
+  switch (opts.method()) {
+  case BPMatrix::FOLD:
+    {
+#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
+      static boost::mutex mtx;
+      boost::mutex::scoped_lock lock(mtx);
+#endif
+      Vienna::pf_scale = -1;
+      Vienna::init_pf_fold(s.size());
+      Vienna::pf_fold(const_cast<char*>(s.c_str()), NULL);
+      for (uint j=2; j!=bp.size()+1; ++j) {
+	for (uint i=j-1; ; --i) {
+	  bp(i,j) = Vienna::pr[Vienna::iindx[i]-j];
+	  if (i==1) break;
+	}
+      }
+      Vienna::free_pf_arrays();
+      return true;
     }
+    break;
+
+  case BPMatrix::SFOLD:
+    {
+#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
+      static boost::mutex mtx;
+      boost::mutex::scoped_lock lock(mtx);
+#endif
+      int bk_st_back=Vienna::st_back;
+      Vienna::st_back=1;
+
+      Vienna::pf_scale = -1;
+      Vienna::init_pf_fold(s.size());
+      Vienna::pf_fold(const_cast<char*>(s.c_str()), NULL);
+
+      // stochastic sampling
+      for (uint n=0; n!=opts.n_samples; ++n) {
+	char *str = Vienna::pbacktrack(const_cast<char*>(s.c_str()));
+	//std::cout << s << std::endl << str << std::endl;
+	assert(s.size()==strlen(str));
+	// count basepairs
+	std::stack<uint> st;
+	for (uint i=0; i!=s.size(); ++i) {
+	  if (str[i]=='(') {
+	    st.push(i);
+	  } else if (str[i]==')') {
+	    bp(st.top()+1, i+1) += 1;
+	    st.pop();
+	  }
+	}
+	free(str);
+      }
+
+      // normalize
+      for (uint j=1; j!=bp.size(); ++j) {
+	for (uint i=j-1; /*i>=0*/; --i) {
+	  bp(i+1,j+1) = bp(i+1,j+1) / opts.n_samples;
+	  if (i==0) break;
+	}
+      }
+
+      Vienna::st_back=bk_st_back;
+      Vienna::free_pf_arrays();
+      return true;
+    }
+    break;
+    
+  case BPMatrix::LFOLD:
+#if 0
+    {
+#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
+      static boost::mutex mtx;
+      boost::mutex::scoped_lock lock(mtx);
+#endif
+      Vienna::plist *pl;
+      Vienna::pf_scale = -1;
+      uint wsz = s.size()<win_sz_ ? s.size() : win_sz_;
+      uint psz = wsz<pair_sz_ ? wsz : pair_sz_;
+      Vienna::init_pf_foldLP(s.size());
+      Vienna::pfl_fold(const_cast<char*>(s.c_str()), wsz, psz, th_, &pl);
+      for (uint k=0; pl[k].i!=0; ++k)
+	(*this)(pl[k].i, pl[k].j) = pl[k].p;
+      free(pl);
+      Vienna::free_pf_arraysLP();
+      return true;
+    }
+    break;
+#endif
+  default:
+    assert(!"unsupported folding method");
+    break;
   }
+  return false;
 }
+
 
 template <class Seq>
-BPMatrix::
-BPMatrix(const std::list<Seq>& ali,
-	 const std::list< boost::shared_ptr<BPMatrix> >& bps)
-#ifdef HAVE_BOOST_RANDOM
-  : sz_(ali.begin()->size()),
-    table_(sz_+1),
-    rand_(RNG(time(NULL)), Dist(0,1))
-#else
-  : sz_(ali.begin()->size()),
-    table_(sz_+1)
-#endif
+static
+void
+average_matrix(BPMatrix& bp,
+	       const std::list<Seq>& ali,
+	       const std::list< boost::shared_ptr<BPMatrix> >& bps)
 {
   assert(ali.size()==bps.size());
   typedef typename Seq::value_type rna_type;
   const rna_type GAP = RNASymbol<rna_type>::GAP;
+
+  // align bp matrices according to the given alignment
   uint n_seq=ali.size();
-  table_.fill(0.0);
   typename std::list<Seq>::const_iterator a;
   std::list< boost::shared_ptr<BPMatrix> >::const_iterator b;
   for (a=ali.begin(), b=bps.begin(); a!=ali.end() && b!=bps.end(); ++a, ++b) {
@@ -70,150 +224,87 @@ BPMatrix(const std::list<Seq>& ali,
     }
     for (uint j=1; j!=(*b)->size(); ++j) {
       for (uint i=j-1; /*i>=0*/; --i) {
-	(*this)(idxmap[i]+1,idxmap[j]+1) += (**b)(i+1,j+1);
+	bp(idxmap[i]+1,idxmap[j]+1) += (**b)(i+1,j+1);
 	if (i==0) break;
       }
     }
   }
-  for (uint j=1; j!=sz_; ++j) {
+
+  // averaging
+  for (uint j=1; j!=bp.size(); ++j) {
     for (uint i=j-1; /*i>=0*/; --i) {
-      (*this)(i+1,j+1) = (*this)(i+1,j+1) / n_seq;
+      bp(i+1,j+1) = bp(i+1,j+1) / n_seq;
       if (i==0) break;
     }
   }
 }
 
-void
-BPMatrix::
-traceback(std::string& str, float bp_w /*=1.0*/) const
+// folding for aligned sequences
+static
+bool
+make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
+	       const BPMatrix::Options& opts)
 {
-  std::vector<double> ss(sz_);
-  std::fill(ss.begin(), ss.end(), 1.0);
-  for (uint j=1; j!=sz_; ++j) {
-    for (uint i=0; i!=j; ++i) {
-      double p_ij = (*this)(i+1,j+1);
-      ss[i]-=p_ij;
-      ss[j]-=p_ij;
-    }
-  }
-
-  CYKTable<double> bp(sz_);
-  CYKTable<double> bp_m(sz_);
-  bp.fill(0.0);
-  bp_m.fill(0.0);
-  for (uint j=1; j!=sz_; ++j) {
-    for (uint i=j-1; /*i>=0*/; --i) {
-      double p_ij = (*this)(i+1,j+1);
-      if (i+2<=j && p_ij>0.0)
-	bp(i,j)=bp(i+1,j-1)+2*bp_w*p_ij;
-      if (i+1<=j && bp(i,j)<bp(i+1,j)+ss[i])
-	bp(i,j)=bp(i+1,j)+ss[i];
-      if (i<=j-1 && bp(i,j)<bp(i,j-1)+ss[j])
-	bp(i,j)=bp(i,j-1)+ss[j];
-      for (uint k=i; k<j; ++k) {
-	if (bp_m(i,j)<bp(i,k)+bp(k+1,j))
-	  bp_m(i,j)=bp(i,k)+bp(k+1,j);
-      }
-      if (bp(i,j)<bp_m(i,j))
-	bp(i,j)=bp_m(i,j);
-      if (i==0) break;
-    }
-  }
-
-  str.resize(sz_);
-  std::fill(str.begin(), str.end(), '.');
-  //std::cout << bp(0,sz_-1) << std::endl;
-  traceback(bp, bp_m, ss, str, 0, sz_-1, bp_w);
-}
-
-
-void
-BPMatrix::
-traceback(const CYKTable<double>& bp,
-	  const CYKTable<double>& bp_m,
-	  const std::vector<double>& ss,
-	  std::string& str,
-	  uint i, uint j,
-	  float bp_w /*=1.0*/) const
-{
-  if (i==j) return;
-  double p=0.0, l=0.0, r=0.0, m=0.0;
-
-  double p_ij = (*this)(i+1,j+1);
-  if (i+2<=j && p_ij>0.0) p=exp(bp(i+1,j-1)+2*bp_w*p_ij);
-  if (i+1<=j) l=exp(ss[i]+bp(i+1,j));
-  if (i<=j-1) r=exp(ss[j]+bp(i,j-1));
-  m=exp(bp_m(i,j));
-
-  double rnd=rand01()*(p+l+r+m);
-  if (/*i+2<=j && p_ij>0.0 &&*/ rnd<p) {
-    str[i]='('; 
-    str[j]=')';
-    //std::cout << "p: " << i << "," << j << std::endl;
-    traceback(bp, bp_m, ss, str, i+1, j-1);
-    return;
-  }
-  if (/*i+1<=j &&*/ rnd<p+l) {
-    str[i]='.'; 
-    //std::cout << "l: " << i << "," << j << std::endl;
-    traceback(bp, bp_m, ss, str, i+1, j);
-    return;
-  }
-  if (/*i<=j-1 &&*/ rnd<p+l+r) {
-    str[j]='.'; 
-    //std::cout << "r: " << i << "," << j << std::endl;
-    traceback(bp, bp_m, ss, str, i, j-1);
-    return;
-  }
-  {
-    std::vector<double> br(j-i);
-    br[0]=exp(bp(i,i)+bp(i+1,j));
-    for (uint k=i+1; k<j; ++k)
-      br[k-i]=br[k-i-1]+exp(bp(i,k)+bp(k+1,j));
-    double rnd_m=rand01()*br[j-i-1];
-    for (uint k=i; k<j; ++k) {
-      if (rnd_m<br[k-i]) {
-	//std::cout << "b: " << i << "," << j << "," << k << std::endl;
-	traceback(bp, bp_m, ss, str, i, k);
-	traceback(bp, bp_m, ss, str, k+1, j);
-	return;
-      }
-    }
-  }
-}
-
-#ifndef HAVE_BOOST_RANDOM
-double
-BPMatrix::
-rand01() const 
-{
-  return rand()/(static_cast<double>(RAND_MAX)+1);
-}
-#else
-double
-BPMatrix::
-rand01() const 
-{
-  return rand_();
-}
+  switch (opts.method()) {
+  case BPMatrix::ALIFOLD:
+    {
+#if !defined(HAVE_MPI) && defined(HAVE_BOOST_THREAD)
+      static boost::mutex mtx;
+      boost::mutex::scoped_lock lock(mtx);
 #endif
+      // prepare an alignment
+      uint length = x.get_seq(0).size();
+      char** seqs = new char*[x.n_seqs()+1];
+      seqs[x.n_seqs()]=NULL;
+      for (uint i=0; i!=x.n_seqs(); ++i) {
+	std::string s(x.get_seq(i));
+	assert(s.size()==length);
+	seqs[i] = new char[length+1];
+	strcpy(seqs[i], s.c_str());
+      }
+      {
+	// scaling parameters to avoid overflow
+	char* str = new char[length+1];
+	double min_en = Vienna::alifold(seqs, str);
+	delete[] str;
+	Vienna::free_alifold_arrays();
+	double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+	Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+      }
+      // build a base pair probablity matrix
+      Vienna::pair_info* pi;
+      Vienna::alipf_fold(seqs, NULL, &pi);
+      for (uint k=0; pi[k].i!=0; ++k)
+	bp(pi[k].i, pi[k].j) = pi[k].p;
+      free(pi);
+      for (uint i=0; i!=x.n_seqs(); ++i) delete[] seqs[i];
+      delete[] seqs;
+      return true;
+    }
+    break;
 
-// template instantiation
+  case BPMatrix::FOLD:
+  case BPMatrix::LFOLD:
+  case BPMatrix::SFOLD:
+    {
+      std::list<std::string> ali;
+      std::list<BPMatrixPtr> bps;
+      for (uint i=0; i!=x.n_seqs(); ++i) {
+	std::string s(x.get_seq(i));
+	boost::algorithm::to_lower(s);
+	ali.push_back(s);
+	s=erase_gap(s);
+	BPMatrixPtr b(new BPMatrix(s, opts));
+	bps.push_back(b);
+      }
+      average_matrix(bp, ali, bps);
+      return true;
+    }
+    break;
+  default:
+    assert(!"unsupported folding method");
+    break;
+  }
 
-template 
-BPMatrix::
-BPMatrix(const std::list<std::string>& ali,
-	 const std::list< boost::shared_ptr<BPMatrix> >& bps);
-
-template 
-BPMatrix::
-BPMatrix(const std::list<RNASequence>& ali,
-	 const std::list< boost::shared_ptr<BPMatrix> >& bps);
-
-extern "C" {
-#include <ViennaRNA/fold_vars.h>
-};
-
-template
-BPMatrix::
-BPMatrix(uint sz, const FLT_OR_DBL* pr, const int* iindx);
+  return false;
+}
