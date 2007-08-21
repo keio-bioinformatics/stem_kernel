@@ -4,6 +4,7 @@
 #define __INC_FRAMEWORK_H__
 
 #include <vector>
+#include <list>
 #include <string>
 #include <fstream>
 #include <sstream>
