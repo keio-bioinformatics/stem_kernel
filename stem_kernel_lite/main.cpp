@@ -14,9 +14,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 #include "../common/framework.h"
 #include "score_table.h"
 #include "stem_kernel.h"
@@ -29,76 +26,18 @@
 using namespace boost::lambda;
 namespace po = boost::program_options;
 
-// options
-static double gap;
-static double stack;
-static double covar;
-static double alpha;
-static double beta;
-static double loop_gap;
-static bool use_string_only=false;
-static bool use_string=false;
-static bool use_ribosum=false;
-static uint len_band=0;
-
-template < class LDF >
-static
-bool
-do_it(const LDF& ldf, const Options& opts)
-{
-  typedef typename LDF::Data Data;
-  typedef std::pair<std::string, Data> Example;
-  typedef std::vector< Example > ExampleSet;
-  typedef SimpleScoreTable<Data,double> SiScoreTable;
-  typedef StemKernel<SiScoreTable, Data> SiKernel;
-  typedef SubstScoreTable<Data,double> SuScoreTable;
-  typedef StemKernel<SuScoreTable, Data> SuKernel;
-  typedef StemStrKernel<SuScoreTable, Data> SSKernel;
-  typedef StringKernel<double,Data> SuStringKernel;
-
-  if (use_string_only) {
-    SuStringKernel kernel(loop_gap, alpha);
-    App<SuStringKernel,LDF> app(kernel, ldf, opts);
-    return app.execute();
-  } else if (use_string) {
-    SuScoreTable st(gap, beta, loop_gap);
-    SSKernel kernel(st, loop_gap, alpha, len_band);
-    App<SSKernel,LDF> app(kernel, ldf, opts);
-    return app.execute();
-  } else if (use_ribosum) {
-    SuScoreTable st(gap, beta, loop_gap);
-    SuKernel kernel(st, len_band);
-    App<SuKernel,LDF> app(kernel, ldf, opts);
-    return app.execute();
-  } else {
-    SiScoreTable st(gap, stack, covar, loop_gap);
-    SiKernel kernel(st, len_band);
-    App<SiKernel,LDF> app(kernel, ldf, opts);
-    return app.execute();
-  }
-}
-
-
-#ifdef HAVE_MPI
-class MPIState
-{
-public:
-  MPIState(int& argc, char**& argv)
-  {
-    MPI::Init(argc, const_cast<char**&>(argv));
-  }
-
-  ~MPIState()
-  {
-    if (MPI::Is_initialized())
-      MPI::Finalize();
-  }
-};
-#endif
-
 int
 main(int argc, char** argv)
 {
+  typedef DataLoaderFactory<DataLoader<SData> > LDF;
+  typedef std::pair<std::string, SData> Example;
+  typedef std::vector< Example > ExampleSet;
+  typedef SimpleScoreTable<SData,double> SiScoreTable;
+  typedef StemKernel<SiScoreTable, SData> SiKernel;
+  typedef SubstScoreTable<SData,double> SuScoreTable;
+  typedef StemKernel<SuScoreTable, SData> SuKernel;
+  typedef StemStrKernel<SuScoreTable, SData> SSKernel;
+
 #ifdef HAVE_MPI
   MPIState mpi_state(argc, argv);
 #endif
@@ -107,6 +46,15 @@ main(int argc, char** argv)
   double th=0.001;
   uint folding_method=FOLD;
   //uint win_sz, pair_sz;
+  double gap;
+  double stack;
+  double covar;
+  double alpha;
+  double beta;
+  double loop_gap;
+  bool use_string=false;
+  bool use_ribosum=false;
+  uint len_band=0;
 
   // parse command line options
   po::options_description desc("Options");
@@ -122,7 +70,6 @@ main(int argc, char** argv)
      "set the weight for stacking base pairs")
     ("covariant,v", po::value<double>(&covar)->default_value(0.8),
      "set substitution (covariant) weight for base pairs")
-    ("use-alifold", "use basepairing probablity matrices by pf version of the alifold instead of averaged basepairing probability matrices")
 #if 0
     ("window-size,w", po::value<uint>(&win_sz)->default_value(0),
      "set the window size for folding RNAs")
@@ -133,14 +80,14 @@ main(int argc, char** argv)
      "set the band of difference of the length between bases")
     ("no-ribosum", "do not use the RIBOSUM substitution matrix")
     ("no-string", "do not convolute the string kernel with base pair probabilities")
-    //("string-only", "use only the string kernel with base pair probabilities")
-    ("la-kernel", "run as local alignment kernel")
     ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
      "set the loop weight of the RIBOSUM for the string kernel")
     ("beta,b", po::value<double>(&beta)->default_value(0.3),
      "set the base pair weight of the RIBOSUM for the stem kernel")
     ("loop-gap,G", po::value<double>(&loop_gap)->default_value(0.6),
-     "set the gap weight for loop regions");
+     "set the gap weight for loop regions")
+    ("--log", "use log")
+    ;
   po::variables_map vm;
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).
@@ -162,25 +109,33 @@ main(int argc, char** argv)
 	      << desc << std::endl;
     return 1;
   }
-  //use_string_only = vm.count("string-only");
-  use_string_only = vm.count("la-kernel");
+
   use_string = !vm.count("no-string");
   use_ribosum = !vm.count("no-ribosum");
-
-  folding_method=vm.count("use-alifold") ? ALIFOLD : FOLD;
-  if (use_string_only) folding_method=NO_BPMATRIX;
+  use_log = !vm.count("log");
 
   opts.parse_extra_args(extra_args);
 
   bool res = false;
   try {
     if (!res) {
-      DataLoaderFactory<DataLoader<SData> > ldf(folding_method, th);
-      res=do_it(ldf, opts);
-    }
-    if (!res) {
-      DataLoaderFactory<DataLoader<MData> > ldf(folding_method, th);
-      res=do_it(ldf, opts);
+      LDF ldf(folding_method, th);
+      if (use_string) {
+	SuScoreTable st(gap, beta, loop_gap);
+	SSKernel kernel(st, loop_gap, alpha, len_band);
+	App<SSKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      } else if (use_ribosum) {
+	SuScoreTable st(gap, beta, loop_gap);
+	SuKernel kernel(st, len_band);
+	App<SuKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      } else {
+	SiScoreTable st(gap, stack, covar, loop_gap);
+	SiKernel kernel(st, len_band);
+	App<SiKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      }
     }
   } catch (const char* str) {
 #ifdef HAVE_MPI

@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifndef __INC_FRAMEWORK_H__
 #define __INC_FRAMEWORK_H__
@@ -11,6 +11,9 @@
 #include <boost/program_options.hpp>
 #include "../common/kernel_matrix.h"
 #include "../libsvm/svm_util.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
 
 class Glob
 {
@@ -288,5 +291,22 @@ private:
   const LDF& ldf_;
   const Options& opts_;
 };
+
+#ifdef HAVE_MPI
+class MPIState
+{
+public:
+  MPIState(int& argc, char**& argv)
+  {
+    MPI::Init(argc, const_cast<char**&>(argv));
+  }
+
+  ~MPIState()
+  {
+    if (MPI::Is_initialized())
+      MPI::Finalize();
+  }
+};
+#endif
 
 #endif	//__INC_FRAMEWORK_H__
