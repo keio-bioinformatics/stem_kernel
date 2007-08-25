@@ -6,7 +6,7 @@
 #include <boost/multi_array.hpp>
 #include "dag.h"
 
-template < class D, class V >
+template < class V, class D >
 class SimpleNodeScore
 {
 public:
@@ -34,7 +34,7 @@ private:
   value_type covar_;
 };
 
-template < class D, class V >
+template < class V, class D >
 class SubstNodeScore
 {
 public:
@@ -59,7 +59,7 @@ private:
   value_type beta_;
 };
 
-template < class D, class V >
+template < class V, class D >
 class SimpleEdgeScore
 {
 public:
@@ -95,7 +95,7 @@ private:
   static std::vector<value_type> gap_vec_;
 };
 
-template < class D, class V >
+template < class V, class D >
 class SubstEdgeScore
 {
 public:
@@ -132,27 +132,27 @@ private:
 };
 
 
-template < class D, class V >
+template < class V, class D >
 class SimpleScoreTable
-  : public SimpleNodeScore<D,V>, public SimpleEdgeScore<D,V>
+  : public SimpleNodeScore<V,D>, public SimpleEdgeScore<V,D>
 {
 public:
   typedef V value_type;
   typedef D Data;
   typedef typename Data::Seq Seq;
-  typedef typename SimpleEdgeScore<D,V>::WorkArea WorkArea;
+  typedef typename SimpleEdgeScore<V,D>::WorkArea WorkArea;
 
   SimpleScoreTable(value_type gap, value_type stack, value_type covar,
 		   value_type loop_gap)
-    : SimpleNodeScore<D,V>(gap, stack, covar),
-      SimpleEdgeScore<D,V>(loop_gap)
+    : SimpleNodeScore<V,D>(gap, stack, covar),
+      SimpleEdgeScore<V,D>(loop_gap)
   {
   }
 };
 
-template < class D, class V >
+template < class V, class D >
 class SubstScoreTable
-  : public SubstNodeScore<D,V>, public SimpleEdgeScore<D,V>
+  : public SubstNodeScore<V,D>, public SimpleEdgeScore<V,D>
 {
 public:
   typedef V value_type;
@@ -160,11 +160,11 @@ public:
   typedef typename Data::Seq Seq;
   typedef typename Data::Node Node;
   typedef typename Data::Edge Edge;
-  typedef typename SimpleEdgeScore<D,V>::WorkArea WorkArea;
+  typedef typename SimpleEdgeScore<V,D>::WorkArea WorkArea;
 
   SubstScoreTable(value_type gap, value_type beta, value_type loop_gap)
-    : SubstNodeScore<D,V>(gap, beta),
-      SimpleEdgeScore<D,V>(loop_gap)
+    : SubstNodeScore<V,D>(gap, beta),
+      SimpleEdgeScore<V,D>(loop_gap)
   {
   }
 };

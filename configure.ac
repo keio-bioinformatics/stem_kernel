@@ -14,6 +14,19 @@ AC_LANG(C++)
 AC_CXX_HAVE_STL
 AC_PROG_RANLIB
 
+AC_ARG_ENABLE([ref-impl],
+  AS_HELP_STRING([--enable-ref-impl],
+    [build naive reference implimentation of stem kernels]))
+
+AC_ARG_ENABLE([string-kernel],
+  AS_HELP_STRING([--enable-string-kernel],
+    [build naive string kernel kernels]))
+
+AC_ARG_ENABLE([simpal],
+  AS_HELP_STRING([--enable-simpal],
+    [build simple palindrom kernels]))
+
+	    	   
 # Checks for libraries.
 
 AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
@@ -50,6 +63,10 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_CHECK_FUNCS([pow sqrt])
-#ACX_LAPACK
+
+AM_CONDITIONAL([OPT_REF_IMPL], [test "$enable_ref_impl" = yes])
+AM_CONDITIONAL([OPT_STRING_KERNEL], [test "$enable_string_kernel" = yes])
+AM_CONDITIONAL([OPT_SIMPAL], [test "$enable_simpal" = yes])
+
 AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile rla_kernel/Makefile])
 AC_OUTPUT

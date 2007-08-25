@@ -37,9 +37,9 @@ simple_node_score(const V& covar, const N& x, const N& y)
 }
 
 // node score for MATCH
-template < class D, class V >
-typename SimpleNodeScore<D,V>::value_type
-SimpleNodeScore<D,V>::
+template < class V, class D >
+typename SimpleNodeScore<V,D>::value_type
+SimpleNodeScore<V,D>::
 node_score(const Data& xx, const Data& yy,
 	   uint i, uint j) const
 {
@@ -51,13 +51,13 @@ node_score(const Data& xx, const Data& yy,
 }
 
 // static private
-template < class D, class V >
-std::vector<typename SimpleEdgeScore<D,V>::value_type>
-SimpleEdgeScore<D,V>::gap_vec_;
+template < class V, class D >
+std::vector<typename SimpleEdgeScore<V,D>::value_type>
+SimpleEdgeScore<V,D>::gap_vec_;
 
-template < class D, class V >
+template < class V, class D >
 void
-SimpleEdgeScore<D,V>::
+SimpleEdgeScore<V,D>::
 initialize(WorkArea& wa, const Data& xx, const Data& yy) const
 {
   const Seq& seq_x(xx.seq);
@@ -82,9 +82,9 @@ initialize(WorkArea& wa, const Data& xx, const Data& yy) const
 }
 
 // edge score for MATCH
-template < class D, class V >
-typename SimpleEdgeScore<D,V>::value_type
-SimpleEdgeScore<D,V>::
+template < class V, class D >
+typename SimpleEdgeScore<V,D>::value_type
+SimpleEdgeScore<V,D>::
 edge_score(const WorkArea& wa,
 	   const Data& xx, const Data& yy,
 	   const Edge& ix, const Edge& iy,
@@ -96,9 +96,9 @@ edge_score(const WorkArea& wa,
 }
 
 // edge score for GAP
-template < class D, class V >
-typename SimpleEdgeScore<D,V>::value_type
-SimpleEdgeScore<D,V>::
+template < class V, class D >
+typename SimpleEdgeScore<V,D>::value_type
+SimpleEdgeScore<V,D>::
 edge_score(const WorkArea& wa,
 	   const Data& xx, const Edge& ix, uint i) const
 {
@@ -108,9 +108,9 @@ edge_score(const WorkArea& wa,
 }
 
 // edge and extented node score for MATCH where node does not use for STEM
-template < class D, class V >
-typename SimpleEdgeScore<D,V>::value_type
-SimpleEdgeScore<D,V>::
+template < class V, class D >
+typename SimpleEdgeScore<V,D>::value_type
+SimpleEdgeScore<V,D>::
 edge_ext_score(const WorkArea& wa,
 	       const Data& xx, const Data& yy,
 	       const Edge& ix, const Edge& iy,
@@ -121,8 +121,8 @@ edge_ext_score(const WorkArea& wa,
   return g[4]*g[ix.gaps()]*g[iy.gaps()];
 }
 
-template < class D, class V >
-SubstNodeScore<D,V>::
+template < class V, class D >
+SubstNodeScore<V,D>::
 SubstNodeScore(value_type gap, value_type beta)
   : gap_(gap),
     co_subst_(boost::extents[N_IUPAC][N_IUPAC][N_IUPAC][N_IUPAC]),
@@ -184,9 +184,9 @@ subst_node_score(const ST& st, const N& x, const N& y)
 }
 
 // node score for GAP
-template < class D, class V >
-typename SubstNodeScore<D,V>::value_type
-SubstNodeScore<D,V>::
+template < class V, class D >
+typename SubstNodeScore<V,D>::value_type
+SubstNodeScore<V,D>::
 node_score(const Data& xx, const Data& yy,
 	   uint i, uint j) const
 {
@@ -199,8 +199,8 @@ node_score(const Data& xx, const Data& yy,
 
 
 #if 0
-template < class D, class V >
-SubstEdgeScore<D,V>::
+template < class V, class D >
+SubstEdgeScore<V,D>::
 SubstEdgeScore(value_type gap, value_type beta)
   : gap_(gap), beta_(beta),
     si_subst_(boost::extents[N_RNA][N_RNA])
@@ -212,9 +212,9 @@ SubstEdgeScore(value_type gap, value_type beta)
   }
 }
 
-template < class D, class V >
+template < class V, class D >
 void
-SubstEdgeScore<D,V>::
+SubstEdgeScore<V,D>::
 initialize(WorkArea& wa, const Data& xx, const Data& yy) const
 {
   const Seq& x(xx.seq);
@@ -310,9 +310,9 @@ calc_edge_score(const boost::multi_array<V,2>& si_subst,
 }
 
 // edge score for MATCH
-template < class D, class V >
-typename SubstEdgeScore<D,V>::value_type
-SubstEdgeScore<D,V>::
+template < class V, class D >
+typename SubstEdgeScore<V,D>::value_type
+SubstEdgeScore<V,D>::
 edge_score(const WorkArea& wa,
 	   const Data& xx, const Data& yy,
 	   const Edge& ix, const Edge& iy,
@@ -336,9 +336,9 @@ edge_score(const WorkArea& wa,
 }
 
 // edge score for GAP
-template < class D, class V >
-typename SubstEdgeScore<D,V>::value_type
-SubstEdgeScore<D,V>::
+template < class V, class D >
+typename SubstEdgeScore<V,D>::value_type
+SubstEdgeScore<V,D>::
 edge_score(const WorkArea& wa,
 	   const Data& xx, const Edge& ix, uint i) const
 {
@@ -347,9 +347,9 @@ edge_score(const WorkArea& wa,
 }
 
 // edge and extented node score for MATCH where node does not use for STEM
-template < class D, class V >
-typename SubstEdgeScore<D,V>::value_type
-SubstEdgeScore<D,V>::
+template < class V, class D >
+typename SubstEdgeScore<V,D>::value_type
+SubstEdgeScore<V,D>::
 edge_ext_score(const WorkArea& wa,
 	       const Data& xx, const Data& yy,
 	       const Edge& ix, const Edge& iy,
@@ -379,29 +379,29 @@ edge_ext_score(const WorkArea& wa,
 typedef double ValueType;
 
 template
-class SimpleNodeScore<SData,ValueType>;
+class SimpleNodeScore<ValueType,SData>;
 
 template
-class SimpleEdgeScore<SData,ValueType>;
+class SimpleEdgeScore<ValueType,SData>;
 
 template
-class SubstNodeScore<SData,ValueType>;
+class SubstNodeScore<ValueType,SData>;
 
 #if 0
 template
-class SubstEdgeScore<SData,ValueType>;
+class SubstEdgeScore<ValueType,SData>;
 #endif
 
 template
-class SimpleNodeScore<MData,ValueType>;
+class SimpleNodeScore<ValueType,MData>;
 
 template
-class SimpleEdgeScore<MData,ValueType>;
+class SimpleEdgeScore<ValueType,MData>;
 
 template
-class SubstNodeScore<MData,ValueType>;
+class SubstNodeScore<ValueType,MData>;
 
 #if 0
 template
-class SubstEdgeScore<MData,ValueType>;
+class SubstEdgeScore<ValueType,MData>;
 #endif

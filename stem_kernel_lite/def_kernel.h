@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifndef __INC_DEF_KERNEL_H__
 #define __INC_DEF_KERNEL_H__
@@ -29,8 +29,8 @@ public:
   }
 
 private:
-  SimpleScoreTable<D,V> st_;
-  StemKernel<SimpleScoreTable<D,V>, D> k_;
+  SimpleScoreTable<V,D> st_;
+  StemKernel<SimpleScoreTable<V,D>, D> k_;
 };
 
 template <class V, class D>
@@ -54,8 +54,8 @@ public:
   }
 
 private:
-  SubstScoreTable<D,V> st_;
-  StemKernel<SubstScoreTable<D,V>, D> k_;
+  SubstScoreTable<V,D> st_;
+  StemKernel<SubstScoreTable<V,D>, D> k_;
 };
 
 template <class V, class D>
