@@ -39,23 +39,24 @@ struct Data
   }
 };
 
-struct Col
+struct LoopFreq
 {
-  std::vector<unsigned char> cnt_;
+  std::vector<float> freq_;
 
-  Col() : cnt_(N_RNA, 0) { }
+  LoopFreq() : freq_(N_RNA, 0) { }
 
-  unsigned char cnt(uint i) const { return cnt_[i]; }
-  unsigned char& cnt(uint i) { return cnt_[i]; }
+  float operator[](uint i) const { return freq_[i]; }
+  float& operator[](uint i) { return freq_[i]; }
 };
 
 #if 0
 typedef Data<std::string> SData;
 typedef Data< MASequence<std::string> > MData;
 #else
-typedef Data<RNASequence,std::string> SData;
+//typedef Data<RNASequence,std::string> SData;
 //typedef Data< MASequence<RNASequence>,MASequence<std::string> > MData;
-typedef Data< std::vector<Col>,MASequence<std::string> > MData;
+typedef Data< std::vector<LoopFreq>, std::string> SData;
+typedef Data< std::vector<LoopFreq>, MASequence<std::string> > MData;
 #endif
 
 template < class D >

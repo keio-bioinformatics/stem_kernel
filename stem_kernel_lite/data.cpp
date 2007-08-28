@@ -82,22 +82,20 @@ make_tree_helper(std::vector<Node>& tree,
   typedef typename Node::Edge Edge;
   if (vt(pos.first, pos.second)==static_cast<uint>(-1)) {
     if (pos.first==pos.second) { // leaf node
-      Node leaf(pos, 1.0);
+      Node leaf(pos);
       tree.push_back(leaf);
       vt(pos)=tree.size()-1;
     } else {
       const std::list<Pos>& cur = table(pos);
       if (cur.empty()) {
-	Node node(pos, seq[pos.first], seq[pos.second],
-		  pf(pos.first+1, pos.second+1), 1);
+	Node node(pos, seq, pf, 1);
 	uint ret=make_tree_helper(tree, seq, vt, pf, table,
 				  Pos(pos.first, pos.first));
 	node[0] = Edge(ret, pos);
 	tree.push_back(node);
 	vt(pos)=tree.size()-1;
       } else {
-	Node node(pos, seq[pos.first], seq[pos.second],
-		  pf(pos.first+1, pos.second+1), cur.size());
+	Node node(pos, seq, pf, cur.size());
 	std::list<Pos>::const_iterator x;
 	uint i;
 	for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
@@ -220,7 +218,24 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x)
 template <>
 //static
 void
-convert_seq(const MASequence<std::string>& in, std::vector<Col>& out)
+convert_seq(const std::string& in, std::vector<LoopFreq>& out)
+{
+  RNASequence a;
+  char2rna(a, in);
+  out.resize(a.size());
+  for (uint j=0; j!=out.size(); ++j) {
+    if (a[j] != RNASymbol<RNASequence::value_type>::GAP) {
+      for (uint k=0; k!=N_RNA; ++k) {
+	out[j][k] += iupac_weight[a[j]][k];
+      }	  
+    }
+  }
+}
+
+template <>
+//static
+void
+convert_seq(const MASequence<std::string>& in, std::vector<LoopFreq>& out)
 {
   for (uint i=0; i!=in.n_seqs(); ++i) {
     RNASequence a;
@@ -228,7 +243,9 @@ convert_seq(const MASequence<std::string>& in, std::vector<Col>& out)
     out.resize(a.size());
     for (uint j=0; j!=out.size(); ++j) {
       if (a[j] != RNASymbol<RNASequence::value_type>::GAP) {
-	out[j].cnt(index(a[j]))++;
+	for (uint k=0; k!=N_RNA; ++k) {
+	  out[j][k] += iupac_weight[a[j]][k];
+	}	  
       }
     }
   }
@@ -390,4 +407,4 @@ template
 class Data<RNASequence,std::string>;
 
 template
-class Data<std::vector<Col>, MASequence<std::string> >;
+class Data<std::vector<LoopFreq>, MASequence<std::string> >;

@@ -116,8 +116,9 @@ operator()(const Data& xx, const Data& yy) const
 	for (ix=x[i].begin(); ix!=x[i].end(); ++ix) {
 	  for (iy=y[j].begin(); iy!=y[j].end(); ++iy) {
 	    value_type e_s = st_.edge_score(wa, xx, yy, *ix, *iy, i, j);
-	    value_type ve_s = st_.edge_ext_score(wa, xx, yy, *ix, *iy, i, j);
-	    value_type v = G0[ix->to()][iy->to()]*(v_s*e_s+ve_s);
+	    //value_type ve_s = st_.edge_ext_score(wa, xx, yy, *ix, *iy, i, j);
+	    //value_type v = G0[ix->to()][iy->to()]*(v_s*e_s+ve_s);
+	    value_type v = G0[ix->to()][iy->to()]*v_s*e_s;
 	    K1[j] += v;
 	    G1[j] += v;
 	  }

@@ -18,16 +18,16 @@ simple_node_score(const V& covar, const N& x, const N& y)
 {
   typedef V value_type;
   value_type v_c = 0.0;
-  uint n=0;
-  typename N::cnt_t::const_iterator ix,iy;
-  for (ix=x.cnt().begin(); ix!=x.cnt().end(); ++ix) {
+  float n=0;
+  DAG::bp_freq_iterator ix,iy;
+  for (ix=x.bp_freq_begin(); ix!=x.bp_freq_end(); ++ix) {
     rna_t i = ix->first.first;
     rna_t j = ix->first.second;
-    uint cx = ix->second;
-    for (iy=y.cnt().begin(); iy!=y.cnt().end(); ++iy) {
+    float cx = ix->second;
+    for (iy=y.bp_freq_begin(); iy!=y.bp_freq_end(); ++iy) {
       rna_t k = iy->first.first;
       rna_t l = iy->first.second;
-      uint cy = iy->second;
+      float cy = iy->second;
       value_type v = (i!=k || j!=l) ? covar : 1.0;
       v_c += v*cx*cy;
       n += cx*cy;
@@ -125,33 +125,14 @@ template < class V, class D >
 SubstNodeScore<V,D>::
 SubstNodeScore(value_type gap, value_type beta)
   : gap_(gap),
-    co_subst_(boost::extents[N_IUPAC][N_IUPAC][N_IUPAC][N_IUPAC]),
+    co_subst_(boost::extents[N_RNA][N_RNA][N_RNA][N_RNA]),
     beta_(beta)
 {
-  for (uint i=0; i!=N_IUPAC; ++i) {
-    for (uint j=0; j!=N_IUPAC; ++j) {
-      for (uint k=0; k!=N_IUPAC; ++k) {
-	for (uint l=0; l!=N_IUPAC; ++l) {
-	  uint cnt=0;
-	  value_type val=0.0;
-	  for (uint a=0; a!=N_RNA; ++a) {
-	    if (!iupac_symbol[i][a]) continue;
-	    for (uint b=0; b!=N_RNA; ++b) {
-	      if (!iupac_symbol[j][b]) continue;
-	      for (uint c=0; c!=N_RNA; ++c) {
-		if (!iupac_symbol[k][c]) continue;
-		for (uint d=0; d!=N_RNA; ++d) {
-		  if (!iupac_symbol[l][d]) continue;
-		  val += ribosum_p[a][b][c][d];
-		  cnt++;
-		}
-	      }
-	    }
-	  }
-	  if (cnt==0)
-	    co_subst_[i][j][k][l] = gap_*gap_;
-	  else
-	    co_subst_[i][j][k][l] = exp(val/cnt * beta_);
+  for (uint i=0; i!=N_RNA; ++i) {
+    for (uint j=0; j!=N_RNA; ++j) {
+      for (uint k=0; k!=N_RNA; ++k) {
+	for (uint l=0; l!=N_RNA; ++l) {
+	  co_subst_[i][j][k][l] = exp(ribosum_p[i][j][k][l] * beta_);
 	}
       }
     }
@@ -166,16 +147,16 @@ subst_node_score(const ST& st, const N& x, const N& y)
 {
   typedef typename ST::element value_type;
   value_type v_c = 0.0;
-  uint n=0;
-  typename N::cnt_t::const_iterator ix,iy;
-  for (ix=x.cnt().begin(); ix!=x.cnt().end(); ++ix) {
+  float n=0;
+  DAG::bp_freq_iterator ix,iy;
+  for (ix=x.bp_freq_begin(); ix!=x.bp_freq_end(); ++ix) {
     rna_t i = ix->first.first;
     rna_t j = ix->first.second;
-    uint cx = ix->second;
-    for (iy=y.cnt().begin(); iy!=y.cnt().end(); ++iy) {
+    float cx = ix->second;
+    for (iy=y.bp_freq_begin(); iy!=y.bp_freq_end(); ++iy) {
       rna_t k = iy->first.first;
       rna_t l = iy->first.second;
-      uint cy = iy->second;
+      float cy = iy->second;
       v_c += st[i][j][k][l]*cx*cy;
       n += cx*cy;
     }

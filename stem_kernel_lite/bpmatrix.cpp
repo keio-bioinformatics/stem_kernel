@@ -70,6 +70,7 @@ method() const
 }
 
 // helpers
+
 static
 bool
 make_bp_matrix(BPMatrix& bp, const std::string &x,
@@ -86,7 +87,6 @@ BPMatrix(const std::string& s, const Options& opts)
   : sz_(s.size()), table_(sz_+1)
 {
   table_.fill(0.0);
-
   make_bp_matrix(*this, s, opts);
 }
 
@@ -95,7 +95,6 @@ BPMatrix(const MASequence<std::string>& ma, const Options& opts)
   : sz_(ma.size()), table_(sz_+1)
 {
   table_.fill(0.0);
-
   make_bp_matrix(*this, ma, opts);
 }
 
@@ -201,6 +200,19 @@ make_bp_matrix(BPMatrix& bp, const std::string &x,
   return false;
 }
 
+template <class Seq>
+static
+void
+make_index_map(const Seq& seq, std::vector<uint>& idxmap)
+{
+  typedef typename Seq::value_type rna_type;
+  const rna_type GAP = RNASymbol<rna_type>::GAP;
+
+  idxmap.resize(seq.size());
+  for (uint i=0, j=0; i!=seq.size(); ++i) {
+    if (seq[i]!=GAP) idxmap[j++]=i;
+  }
+}
 
 template <class Seq>
 static
@@ -210,24 +222,21 @@ average_matrix(BPMatrix& bp,
 	       const std::list< boost::shared_ptr<BPMatrix> >& bps)
 {
   assert(ali.size()==bps.size());
-  typedef typename Seq::value_type rna_type;
-  const rna_type GAP = RNASymbol<rna_type>::GAP;
 
   // align bp matrices according to the given alignment
   uint n_seq=ali.size();
   typename std::list<Seq>::const_iterator a;
   std::list< boost::shared_ptr<BPMatrix> >::const_iterator b;
   for (a=ali.begin(), b=bps.begin(); a!=ali.end() && b!=bps.end(); ++a, ++b) {
-    std::vector<uint> idxmap(a->size());
-    for (uint i=0, j=0; i!=a->size(); ++i) {
-      if ((*a)[i]!=GAP) idxmap[j++]=i;
-    }
+    std::vector<uint> idxmap;
+    make_index_map(*a, idxmap);
     for (uint j=1; j!=(*b)->size(); ++j) {
       for (uint i=j-1; /*i>=0*/; --i) {
 	bp(idxmap[i]+1,idxmap[j]+1) += (**b)(i+1,j+1);
 	if (i==0) break;
       }
     }
+    bp.add_matrix(*b, idxmap);
   }
 
   // averaging

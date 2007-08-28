@@ -10,24 +10,11 @@ template < class V, class D >
 StringKernel<V,D>::
 StringKernel(const value_type& gap, const value_type& alpha)
   : gap_(gap), alpha_(alpha),
-    si_subst_(boost::extents[N_IUPAC][N_IUPAC])
+    si_subst_(boost::extents[N_RNA][N_RNA])
 {
-  for (uint i=0; i!=N_IUPAC; ++i) {
-    for (uint k=0; k!=N_IUPAC; ++k) {
-      uint cnt=0;
-      value_type val=0.0;
-      for (uint a=0; a!=N_RNA; ++a) {
-	if (!iupac_symbol[i][a]) continue;
-	for (uint c=0; c!=N_RNA; ++c) {
-	  if (!iupac_symbol[k][c]) continue;
-	  val += ribosum_s[a][c];
-	  cnt++;
-	}
-      }
-      if (cnt==0)
-	si_subst_[i][k] = gap_;
-      else
-	si_subst_[i][k] = exp(val/cnt * alpha_);
+  for (uint i=0; i!=N_RNA; ++i) {
+    for (uint k=0; k!=N_RNA; ++k) {
+      si_subst_[i][k] = exp(ribosum_s[i][k] * alpha_);
     }
   }
 }
@@ -45,17 +32,17 @@ template < class ST >
 static
 inline
 typename ST::element
-subst_score(const ST& st, const Col& x, const Col& y)
+subst_score(const ST& st, const LoopFreq& x, const LoopFreq& y)
 {
   typedef typename ST::element value_type;
   value_type v_c = 0.0;
-  uint n = 0;
+  float n = 0;
   for (uint i=0; i!=N_RNA; ++i) {
-    if (x.cnt(i)==0) continue;
+    if (x[i]==0) continue;
     for (uint j=0; j!=N_RNA; ++j) {
-      if (y.cnt(j)==0) continue;
-      n += x.cnt(i)*y.cnt(j);
-      v_c += st[i][j]*x.cnt(i)*y.cnt(j);
+      if (y[j]==0) continue;
+      n += x[i]*y[j];
+      v_c += st[i][j]*x[i]*y[j];
     }
   }
   return n==0 ? 1.0 : v_c / n;
@@ -69,7 +56,7 @@ subst_score(const ST& st, const Column<T>& x, const Column<T>& y)
 {
   typedef typename ST::element value_type;
   value_type v_c = 0.0;
-  uint n = 0;
+  float n = 0;
   for (uint i=0; i!=N_RNA; ++i) {
     if (x.cnt(i)==0) continue;
     for (uint j=0; j!=N_RNA; ++j) {

@@ -363,6 +363,27 @@ iupac_symbol[N_IUPAC][N_RNA] = {
   { true,  true,  true,  true  }, // N = A or C or G or T(U)
 };
 
+float
+iupac_weight[N_IUPAC][N_RNA] = {
+  // A      C      G      T(U)
+  {  1.0,   0.0,   0.0,   0.0  }, // A
+  {  0.0,   1.0,   0.0,   0.0  }, // C
+  {  0.0,   0.0,   1.0,   0.0  }, // G
+  {  0.0,   0.0,   0.0,   1.0  }, // T(U)
+  {  0.0,   0.0,   0.0,   0.0  }, // GAP
+  { 1.0/2,  0.0,  1.0/2,  0.0  }, // R = A or G
+  {  0.0,  1.0/2,  0.0,  1.0/2 }, // Y = C or T(U)
+  { 1.0/2, 1.0/2,  0.0,   0.0  }, // M = A or C
+  {  0.0,   0.0,  1.0/2, 1.0/2 }, // K = G or T(U)
+  {  0.0,  1.0/2, 1.0/2,  0.0  }, // S = C or G
+  { 1.0/2,  0.0,   0.0,  1.0/2 }, // W = A or T(U)
+  {  0.0,  1.0/3, 1.0/3, 1.0/3 }, // B = C or G or T(U)
+  { 1.0/3,  0.0,  1.0/3, 1.0/3 }, // D = A or G or T(U)
+  { 1.0/3, 1.0/3,  0.0,  1.0/3 }, // H = A or C or T(U)
+  { 1.0/3, 1.0/3, 1.0/3,  0.0  }, // V = A or C or G
+  { 1.0/4, 1.0/4, 1.0/4, 1.0/4 }, // N = A or C or G or T(U)
+};
+
 template
 MASequence<RNASequence>&
 MASequence<RNASequence>::add_seq(const RNASequence& seq);

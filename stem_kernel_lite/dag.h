@@ -10,6 +10,10 @@
 #include "../common/rna.h"
 
 namespace DAG {
+  typedef std::pair<rna_t, rna_t> bp_t;
+  typedef std::pair<bp_t, float> bp_freq_t;
+  typedef std::list<bp_freq_t>::const_iterator bp_freq_iterator;
+
   class Edge
   {
   public:
@@ -62,14 +66,14 @@ namespace DAG {
     typedef E Edge;
     typedef typename std::vector<Edge>::iterator iterator;
     typedef typename std::vector<Edge>::const_iterator const_iterator;
-    typedef std::list< std::pair< std::pair<rna_t,rna_t>, unsigned char > > cnt_t;
       
   public:
     Node()
-      : first_(), last_(), edges_(), weight_(), cnt_()
+      : first_(), last_(), edges_(), weight_(), bp_freq_()
     {
     }
 
+#if 0
     template < class C >
     Node(uint first, uint last, const C& c_first, const C& c_last,
 	 float weight=1.0, uint n_edges=0);
@@ -77,21 +81,29 @@ namespace DAG {
     template < class C >
     Node(const Pos& pos, const C& c_first, const C& c_last,
 	 float weight=1.0, uint n_edges=0);
+#else
+    template < class Seq, class BPM >
+    Node(uint first, uint last, const Seq& seq, const BPM& bpm, uint n_edges=0);
+
+    template < class Seq, class BPM >
+    Node(const Pos& pos, const Seq& seq, const BPM& bpm, uint n_edges=0);
+#endif
 
     Node(uint first, uint last, float weight=1.0)
-      : first_(first), last_(last), edges_(), weight_(weight), cnt_()
+      : first_(first), last_(last),
+	edges_(), weight_(weight), bp_freq_()
     {
     }
 
     Node(const Pos& pos, float weight=1.0)
-      : first_(pos.first), last_(pos.second), edges_(), weight_(weight), cnt_()
+      : first_(pos.first), last_(pos.second),
+	edges_(), weight_(weight), bp_freq_()
     {
     }
 
     Node(const Node& n)
       : first_(n.first_), last_(n.last_),
-	edges_(n.edges_), weight_(n.weight_),
-	cnt_(n.cnt_)
+	edges_(n.edges_), weight_(n.weight_), bp_freq_(n.bp_freq_)
     {
     }
 
@@ -102,7 +114,7 @@ namespace DAG {
 	last_ = n.last_;
 	edges_ = n.edges_;
 	weight_ = n.weight_;
-	cnt_ = n.cnt_;
+	bp_freq_ = n.bp_freq_;
       }
       return *this;
     }
@@ -124,7 +136,9 @@ namespace DAG {
     uint first() const { return first_; }
     uint last() const { return last_; }
     float weight() const { return weight_; }
-    const cnt_t& cnt() const { return cnt_; }
+    //const std::list<bp_freq_t>& cnt() const { return bp_freq_; }
+    bp_freq_iterator bp_freq_begin() const { return bp_freq_.begin(); }
+    bp_freq_iterator bp_freq_end() const { return bp_freq_.end(); }
     uint length() const { return last_-first_; }
 
   private:
@@ -132,7 +146,7 @@ namespace DAG {
     uint last_;
     std::vector<Edge> edges_;
     float weight_;
-    cnt_t cnt_;
+    std::list<bp_freq_t> bp_freq_;
   };
 };
 
