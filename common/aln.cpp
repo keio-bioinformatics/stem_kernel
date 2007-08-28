@@ -7,20 +7,30 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <list>
+#include <deque>
 #include <map>
+#include <stdexcept>
 #include <boost/spirit.hpp>
 
 using namespace boost::spirit;
 
 struct aln_parser : public grammar< aln_parser >
 {
+  class format_error : public std::logic_error
+  {
+  public:
+    format_error(const std::string& msg) : std::logic_error(msg) {}
+  };
+  
   struct WA
   {
+    WA() : cur_index(0), cur_name(), cur_seq(), names(), seqs() { }
+
+    uint cur_index;
     std::string cur_name;
     std::string cur_seq;
-    std::list<std::string> names;
-    std::map<std::string, std::string> name_seq_map;
+    std::deque<std::string> names;
+    std::deque<std::string> seqs;
   };
 
   WA& wa;
@@ -34,11 +44,33 @@ struct aln_parser : public grammar< aln_parser >
     template < class Ite >
     void operator()(Ite i1, Ite i2) const
     {
-      if (wa.name_seq_map.find(wa.cur_name)==wa.name_seq_map.end()) {
+      assert(wa.names.size()==wa.seqs.size());
+      if (wa.cur_index >= wa.names.size()) {
 	wa.names.push_back(wa.cur_name);
-	wa.name_seq_map.insert(std::make_pair(wa.cur_name,std::string()));
+	wa.seqs.push_back(wa.cur_seq);
+      } else if (wa.names[wa.cur_index] == wa.cur_name) {
+	wa.seqs[wa.cur_index] += wa.cur_seq;
+      } else {
+	throw format_error("format error: broken sequence name consistency");
       }
-      wa.name_seq_map[wa.cur_name] += wa.cur_seq;
+      wa.cur_index++;
+    }
+  };
+
+  struct reset_index
+  {
+    WA& wa;
+    reset_index(WA& x) : wa(x) { }
+
+    template < class Ite >
+    void operator()(Ite i1, Ite i2) const
+    {
+      uint l=wa.seqs[0].size();
+      for (uint i=1; i!=wa.seqs.size(); ++i) {
+	if (l!=wa.seqs[i].size())
+	  throw format_error("format error: broken sequence length consistency");
+      }
+      wa.cur_index = 0;
     }
   };
 
@@ -48,17 +80,23 @@ struct aln_parser : public grammar< aln_parser >
     typedef rule<ScannerT> rule_t;
     rule_t aln;
     rule_t header;
+    rule_t head_word;
+    rule_t body;
+    rule_t body_part;
     rule_t empty;
     rule_t seq;
     rule_t status;
     
     definition(const aln_parser& self)
     {
-      aln = header >> *empty >> +(+seq[push_seq(self.wa)] >> !status >> *empty);
-      header = (str_p("CLUSTAL") | str_p("PROBCONS")) >> +print_p >> eol_p;
+      aln = header >> +empty >> body;
+      head_word = str_p("CLUSTAL") | str_p("PROBCONS");
+      header =  head_word >> +print_p >> eol_p;
+      body_part = +seq[push_seq(self.wa)] >> !status >> +empty;
+      body = +(body_part[reset_index(self.wa)]);
       empty = *blank_p >> eol_p;
       seq
-	= (+graph_p)[assign_a(self.wa.cur_name)]
+	= (+graph_p - head_word)[assign_a(self.wa.cur_name)]
 	>> +blank_p >> (+graph_p)[assign_a(self.wa.cur_seq)]
 	>> *blank_p >> eol_p;
       status = *(chset<>("*:.") | blank_p) >> eol_p;
@@ -78,10 +116,10 @@ load_aln(MASequence<Seq>& ma, file_iterator<>& fi)
   if (!info.hit) return false;
   fi = info.stop;
 
-  std::list<std::string>::const_iterator x;
-  for (x=wa.names.begin(); x!=wa.names.end(); ++x) {
+  std::deque<std::string>::const_iterator x;
+  for (x=wa.seqs.begin(); x!=wa.seqs.end(); ++x) {
     Seq r;
-    char2rna(r, wa.name_seq_map[*x]);
+    char2rna(r, *x);
     ma.add_seq(r);
   }
   return true;
