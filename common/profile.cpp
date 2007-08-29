@@ -110,5 +110,5 @@ add_sequence(const std::string& seq, uint n)
     throw "alignment error";
 
   for (uint i=0; i!=seq.size(); ++i)
-    ma_[n][i] = char2rna(seq[i]);
+    ma_[i][n] = char2rna(seq[i]);
 }

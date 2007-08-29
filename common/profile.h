@@ -81,23 +81,26 @@ public:
 
 public:
   BPProfileMaker(const std::string& seq)
-    : ma_(seq.size(), std::vector<rna_t>(1, 0.0))
+    : n_seqs_(1), ma_(seq.size())
   {
+    for (uint i=0; i!=ma_.size(); ++i) ma_[i].resize(n_seqs_);
     add_sequence(seq, 0);
   }
 
   template < class It >
   BPProfileMaker(It b, It e)
-    : ma_(b->size(), std::vector<rna_t>(std::distance(b,e), 0.0))
+    : n_seqs_(std::distance(b,e)), ma_(b->size())
   {
+    for (uint i=0; i!=ma_.size(); ++i) ma_[i].resize(n_seqs_);
     uint n=0;
     for (It x=b; x!=e; ++x) add_sequence(*x, n++);
   }
 
   template < class T >
   BPProfileMaker(const T& ma)
-    : ma_(ma.begin()->size(), std::vector<rna_t>(ma.size(), 0.0))
+    : n_seqs_(ma.size()), ma_(ma.begin()->size())
   {
+    for (uint i=0; i!=ma_.size(); ++i) ma_[i].resize(n_seqs_);
     uint n=0;
     typename T::const_iterator x;
     for (x=ma.begin(); x!=ma.end(); ++x) add_sequence(*x, n++);
@@ -112,13 +115,18 @@ public:
   void make_profile(const std::vector<value_type>& p, uint i, uint j,
 		    std::map<bp_t, value_type>& v) const;
 
-  uint n_seqs() const { return ma_[0].size(); }
+  uint n_seqs() const { return n_seqs_; }
 
 private:
   void add_sequence(const std::string& seq, uint n);
   
 private:
+  uint n_seqs_;
   std::vector< std::vector<rna_t> > ma_;
 };
 
 #endif	// __INC_PROFILE_H__
+
+// Local Variables:
+// mode: C++
+// End:
