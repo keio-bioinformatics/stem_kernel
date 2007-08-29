@@ -282,6 +282,7 @@ check_filetype(const char* f)
 #endif
 }
 
+#if 0
 DataLoader<SData>::
 DataLoader(const char* filename,
 	   const BPMatrix::Options& bp_opts, bool use_bp)
@@ -320,6 +321,7 @@ get()
   }
   return NULL;
 }
+#endif
 
 DataLoader<MData>::
 DataLoader(const char* filename,
@@ -375,6 +377,7 @@ get()
   return NULL;
 }
 
+#if 0
 DataLoader<SData>*
 DataLoaderFactory< DataLoader<SData> >::
 get_loader(const char* filename) const
@@ -389,6 +392,7 @@ get_loader(const char* filename) const
   }
   return NULL;
 }
+#endif
 
 // instantiation
 
@@ -396,8 +400,10 @@ get_loader(const char* filename) const
 #include "bpmatrix.h"
 #include "../common/rna.h"
 
+#if 0
 template
 class Data<ProfileSequence, std::string>;
+#endif
 
 template
 class Data<ProfileSequence, std::list<std::string> >;

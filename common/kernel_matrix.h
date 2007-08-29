@@ -63,42 +63,43 @@ public:
   }
 
   template < class Kernel, class ExampleSet >
-  void calculate(const ExampleSet& train, const Kernel& kernel,
-		 bool normalize=false, uint n_th=1);
+  double calculate(const ExampleSet& train, const Kernel& kernel,
+		   bool normalize=false, uint n_th=1);
 
   template < class Kernel, class ExampleSet >
-  void calculate(const ExampleSet& test, const ExampleSet& train,
-		 const Kernel& kernel,
-		 bool norm_test=false, bool normalize=false, uint n_th=1);
+  double calculate(const ExampleSet& test, const ExampleSet& train,
+		   const Kernel& kernel,
+		   bool norm_test=false, bool normalize=false, uint n_th=1);
 
   template < class Kernel, class ExampleSet >
-  static void calculate(std::vector<value_type>& matrix,
-			const typename ExampleSet::value_type& data,
-			const ExampleSet& train,
-			const std::vector<uint>& sv_index, const Kernel& kernel,
-			uint n_th=1, value_type* data_self=NULL);
+  static double calculate(std::vector<value_type>& matrix,
+			  const typename ExampleSet::value_type& data,
+			  const ExampleSet& train,
+			  const std::vector<uint>& sv_index,
+			  const Kernel& kernel,
+			  uint n_th=1, value_type* data_self=NULL);
 
   template < class Kernel, class ExampleSet >
-  static void calculate(std::vector<value_type>& matrix,
-			const typename ExampleSet::value_type& data,
-			const ExampleSet& train, const Kernel& kernel,
-			uint n_th=1, value_type* data_self=NULL)
+  static double calculate(std::vector<value_type>& matrix,
+			  const typename ExampleSet::value_type& data,
+			  const ExampleSet& train, const Kernel& kernel,
+			  uint n_th=1, value_type* data_self=NULL)
   {
     std::vector<uint> idx;
-    calculate(matrix, data, train, idx, kernel, n_th, data_self);
+    return calculate(matrix, data, train, idx, kernel, n_th, data_self);
   }
   
   template < class Kernel, class ExampleSet >
-  static void diagonal(std::vector<value_type>& diag, const ExampleSet& train,
-		       const std::vector<uint>& sv_index,
-		       const Kernel& kernel, uint n_th=1);
+  static double diagonal(std::vector<value_type>& diag, const ExampleSet& train,
+			 const std::vector<uint>& sv_index,
+			 const Kernel& kernel, uint n_th=1);
 
   template < class Kernel, class ExampleSet >
-  static void diagonal(std::vector<value_type>& diag, const ExampleSet& train,
-			const Kernel& kernel, uint n_th=1)
+  static double diagonal(std::vector<value_type>& diag, const ExampleSet& train,
+			 const Kernel& kernel, uint n_th=1)
   {
    std::vector<uint> idx;
-    diagonal(diag, train, idx, kernel, n_th);
+   return diagonal(diag, train, idx, kernel, n_th);
   }
 
   void print(std::ostream& out) const;

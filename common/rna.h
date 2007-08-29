@@ -138,9 +138,6 @@ public:
   Seq get_seq(uint i) const;
 };
 
-extern bool  iupac_symbol[N_IUPAC][N_RNA];
-extern float iupac_weight[N_IUPAC][N_RNA];
-
 template < class Seq >
 Column<typename Seq::value_type>
 gap_symbol(const MASequence<Seq>& ma_seq);

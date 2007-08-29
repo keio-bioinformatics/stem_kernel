@@ -109,36 +109,36 @@ main(int argc, char** argv)
   bool res = false;
   try {
     if (!res) {
-      typedef DataLoaderFactory<DataLoader<SData> > LDF;
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
       LDF ldf(bp_opts);
       if (use_string) {
 	if (!use_log) {
-	  SuStemStrKernel<double,SData>
+	  SuStemStrKernel<double,MData>
 	    kernel(alpha, beta, gap, loop_gap, len_band);
-	  App<SuStemStrKernel<double,SData>, LDF> app(kernel, ldf, opts);
+	  App<SuStemStrKernel<double,MData>, LDF> app(kernel, ldf, opts);
 	  res = app.execute();
 	} else {
-	  LSuStemStrKernel<double, SData>
+	  LSuStemStrKernel<double, MData>
 	    kernel(alpha, beta, gap, loop_gap, len_band);
-	  App<LSuStemStrKernel<double, SData>, LDF> app(kernel, ldf, opts);
+	  App<LSuStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	  res = app.execute();
 	}
       } else if (use_ribosum) {
 	if (!use_log) {
-	  SuStemKernel<double, SData>
+	  SuStemKernel<double, MData>
 	    kernel(gap, beta, loop_gap, len_band);
-	  App<SuStemKernel<double, SData>, LDF> app(kernel, ldf, opts);
+	  App<SuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	  res = app.execute();
 	} else {
-	  LSuStemKernel<double, SData>
+	  LSuStemKernel<double, MData>
 	    kernel(gap, beta, loop_gap, len_band);
-	  App<LSuStemKernel<double, SData>, LDF> app(kernel, ldf, opts);
+	  App<LSuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	  res = app.execute();
 	}
       } else {
-	SiStemKernel<double, SData>
+	SiStemKernel<double, MData>
 	  kernel(gap, stack, covar, loop_gap, len_band);
-	App<SiStemKernel<double, SData>,LDF> app(kernel, ldf, opts);
+	App<SiStemKernel<double, MData>,LDF> app(kernel, ldf, opts);
 	res = app.execute();
       }
     }

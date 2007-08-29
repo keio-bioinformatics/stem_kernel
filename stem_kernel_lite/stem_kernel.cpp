@@ -169,11 +169,13 @@ operator()(const Data& xx, const Data& yy) const
 
 typedef double ValueType;
 
+#if 0
 template
 class StemKernel<SimpleScoreTable<ValueType,SData>, SData>;
 
 template
 class StemKernel<SubstScoreTable<ValueType,SData>, SData>;
+#endif
 
 template
 class StemKernel<SimpleScoreTable<ValueType,MData>, MData>;

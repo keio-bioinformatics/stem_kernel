@@ -71,8 +71,8 @@ main(int argc, char** argv)
   bool res = false;
   try {
     if (!res) {
-      typedef DataLoaderFactory<DataLoader<SData> > LDF;
-      typedef StringKernel<double,SData> SuStringKernel;
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
+      typedef StringKernel<double,MData> SuStringKernel;
       LDF ldf;
       SuStringKernel kernel(loop_gap, alpha);
       App<SuStringKernel,LDF> app(kernel, ldf, opts);

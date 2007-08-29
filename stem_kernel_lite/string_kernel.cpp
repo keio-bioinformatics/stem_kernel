@@ -135,8 +135,10 @@ operator()(const Data& xx, const Data& yy) const
 
 typedef double ValueType;
 
+#if 0
 template
 class StringKernel<ValueType,SData>;
+#endif
 
 template
 class StringKernel<ValueType,MData>;
