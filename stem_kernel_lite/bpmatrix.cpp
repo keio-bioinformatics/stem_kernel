@@ -81,13 +81,6 @@ bool
 make_bp_matrix(BPMatrix& bp, const std::list<std::string>& x,
 	       const BPMatrix::Options& opts);
 
-#if 0
-bool
-make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
-	       const BPMatrix::Options& opts);
-#endif
-
-
 BPMatrix::
 BPMatrix(const std::string& s, const Options& opts)
   : sz_(s.size()), table_(sz_+1)
@@ -98,7 +91,7 @@ BPMatrix(const std::string& s, const Options& opts)
 
 BPMatrix::
 BPMatrix(const std::list<std::string>& ma, const Options& opts)
-  : sz_(ma.size()), table_(sz_+1)
+  : sz_(ma.begin()->size()), table_(sz_+1)
 {
   table_.fill(0.0);
   make_bp_matrix(*this, ma, opts);

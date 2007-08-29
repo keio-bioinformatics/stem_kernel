@@ -41,7 +41,7 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s, const BPMatrix::Options& opts)
-  : tree(), seq(s), root(), weight(s.size()), max_pa()
+  : tree(), seq(s), root(), weight(seq.size()), max_pa()
 {
   BPMatrix bp(s, opts);
   make_tree(tree, s, bp, opts.th);
@@ -66,14 +66,14 @@ make_bp_profile(std::list<DAG::bp_freq_t>& bp_freq, uint i, uint j,
   std::map<DAG::bp_t, float> c;
   BPMatrix::matrix_iterator mtx = bpm.matrix_begin();
   BPMatrix::idx_map_iterator idx = bpm.idx_map_begin();
-
   if (maker.n_seqs() == bpm.n_matrices()) {
     // weight the bp profile on (i,j) by bp prob for each seq
     std::vector<float> p(maker.n_seqs(), 0.0);
     for (uint x=0; x!=maker.n_seqs(); ++x, ++mtx, ++idx) {
       if ((*idx)[i]!=static_cast<uint>(-1) &&
-	  (*idx)[j]!=static_cast<uint>(-1)) // not GAP
+	  (*idx)[j]!=static_cast<uint>(-1)) { // not GAP
 	p[x] = (**mtx)((*idx)[i]+1, (*idx)[j]+1);
+      }
     }
     maker.make_profile(p, i, j, c);
   } else {
@@ -138,6 +138,22 @@ struct is_child : public std::binary_function<Pos,Pos,bool> {
   }
 };
 
+template < class Seq >
+static
+uint
+seq_size(const Seq& seq)
+{
+  return seq.size();
+}
+
+template < >
+static
+uint
+seq_size(const std::list<std::string>& seq)
+{
+  return seq.begin()->size();
+}
+
 template < class Seq, class BPM, class Node >
 static
 void
@@ -145,11 +161,13 @@ make_tree(std::vector<Node>& tree, const Seq& seq,
 	  const BPM& pf, double th)
 {
   // scan the matrix in bottom up order
-  CYKTable< std::list<Pos> > bp(seq.size());
-  CYKTable< std::list<Pos> > ch(seq.size());
-  std::vector< std::list<Pos> > head(seq.size());
-  for (uint j=1; j!=seq.size(); ++j)  {
+  uint sz = seq_size(seq);
+  CYKTable< std::list<Pos> > bp(sz);
+  CYKTable< std::list<Pos> > ch(sz);
+  std::vector< std::list<Pos> > head(sz);
+  for (uint j=1; j!=sz; ++j)  {
     for (uint i=j-1; ; --i) {
+      //std::cout <<  pf(i+1,j+1) << std::endl;
       if (pf(i+1,j+1)>=th) {
 #if 0
 	std::back_insert_iterator< std::list<Pos> > ii(bp(i,j));
@@ -171,9 +189,9 @@ make_tree(std::vector<Node>& tree, const Seq& seq,
 
   // trace back from root nodes
   BPProfileMaker maker(seq);
-  CYKTable<uint> vt(seq.size());
+  CYKTable<uint> vt(sz);
   vt.fill(static_cast<uint>(-1));
-  for (uint i=0; i!=seq.size(); ++i) {
+  for (uint i=0; i!=sz; ++i) {
     std::list<Pos>::const_reverse_iterator x;
     for (x=head[i].rbegin(); x!=head[i].rend(); ++x) {
       make_tree_helper(tree, maker, vt, pf, bp, *x);
