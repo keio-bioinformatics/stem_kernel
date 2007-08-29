@@ -195,8 +195,14 @@ private:
     if (opts_.normalize) {
       double e = KernelMatrix<value_type>::
 	diagonal(diag, ex, opts_.sv_index, kernel_, opts_.n_th);
-      std::cout << "elapsed time form calculating diagonals: "
-		<< e << "s" << std::endl;
+#ifdef HAVE_MPI
+      if (rank==0) {
+#endif
+	std::cout << "elapsed time for diagonals: "
+		  << e << "s" << std::endl;
+#ifdef HAVE_MPI
+      }
+#endif
     }
 
     uint cnt=0;
@@ -238,8 +244,10 @@ private:
 	  if (rank==0) {
 #endif
 	    if (opts_.normalize) {
+	      boost::timer tm2;
 	      for (uint j=0; j!=vec.size(); ++j)
 		vec[j] /= sqrt(diag[j]*self);
+	      elapsed += tm2.elapsed();
 	    }
 	    ++cnt;
 	    out->output(cnt, opts_.ts_labels[i], vec, self);
