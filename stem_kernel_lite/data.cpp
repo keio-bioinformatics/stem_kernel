@@ -10,6 +10,7 @@
 #include <sstream>
 #include "data.h"
 #include "bpmatrix.h"
+#include "../common/profile.h"
 #include "../common/cyktable.h"
 #include "../common/fa.h"
 #include "../common/maf.h"
@@ -37,43 +38,59 @@ static
 void
 find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 
-template <class IS, class OS>
-static
-void
-convert_seq(const IS& in, OS& out)
-{
-  char2rna(out, in);
-}
-
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s, const BPMatrix::Options& opts)
-  : tree(), seq(), root(), weight(), max_pa()
+  : tree(), seq(s), root(), weight(s.size()), max_pa()
 {
   BPMatrix bp(s, opts);
-  convert_seq(s, seq);
   make_tree(tree, s, bp, opts.th);
   find_root(root, tree);
-  weight.resize(seq.size());
-  fill_weight(bp, weight);
   find_max_parent(max_pa, tree);
+  fill_weight(bp, weight);
 }
  
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s)
-  : tree(), seq(), root(), weight(), max_pa()
+  : tree(), seq(s), root(), weight(), max_pa()
 {
-  convert_seq(s, seq);
 }
 
-// helper functions 
+// helper functions
+static
+void
+make_bp_profile(std::list<DAG::bp_freq_t>& bp_freq, uint i, uint j,
+		const BPProfileMaker& maker, const BPMatrix& bpm)
+{
+  std::map<DAG::bp_t, float> c;
+  BPMatrix::matrix_iterator mtx = bpm.matrix_begin();
+  BPMatrix::idx_map_iterator idx = bpm.idx_map_begin();
 
-template < class BPM, class Seq, class Node >
+  if (maker.n_seqs() == bpm.n_matrices()) {
+    // weight the bp profile on (i,j) by bp prob for each seq
+    std::vector<float> p(maker.n_seqs(), 0.0);
+    for (uint x=0; x!=maker.n_seqs(); ++x, ++mtx, ++idx) {
+      if ((*idx)[i]!=static_cast<uint>(-1) &&
+	  (*idx)[j]!=static_cast<uint>(-1)) // not GAP
+	p[x] = (**mtx)((*idx)[i]+1, (*idx)[j]+1);
+    }
+    maker.make_profile(p, i, j, c);
+  } else {
+    maker.make_profile(bpm(i+1, j+1), i, j, c);
+  }
+
+  std::map<DAG::bp_t, float>::iterator y;
+  for (y=c.begin(); y!=c.end(); ++y) {
+    bp_freq.push_back(*y);
+  }
+}
+
+template < class BPM, class Node >
 static
 uint
 make_tree_helper(std::vector<Node>& tree,
-		 const Seq& seq,
+		 const BPProfileMaker& maker,
 		 CYKTable<uint>& vt,
 		 const BPM& pf,
 		 const CYKTable< std::list<Pos> >& table,
@@ -88,18 +105,22 @@ make_tree_helper(std::vector<Node>& tree,
     } else {
       const std::list<Pos>& cur = table(pos);
       if (cur.empty()) {
-	Node node(pos, seq, pf, 1);
-	uint ret=make_tree_helper(tree, seq, vt, pf, table,
+	std::list<DAG::bp_freq_t> bp_freq;
+	make_bp_profile(bp_freq, pos.first, pos.second, maker, pf);
+	Node node(pos, bp_freq, 1);
+	uint ret=make_tree_helper(tree, maker, vt, pf, table,
 				  Pos(pos.first, pos.first));
 	node[0] = Edge(ret, pos);
 	tree.push_back(node);
 	vt(pos)=tree.size()-1;
       } else {
-	Node node(pos, seq, pf, cur.size());
+	std::list<DAG::bp_freq_t> bp_freq;
+	make_bp_profile(bp_freq, pos.first, pos.second, maker, pf);
+	Node node(pos, bp_freq, cur.size());
 	std::list<Pos>::const_iterator x;
 	uint i;
 	for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
-	  uint ret=make_tree_helper(tree, seq, vt, pf, table, *x);
+	  uint ret=make_tree_helper(tree, maker, vt, pf, table, *x);
 	  node[i] = Edge(ret, pos, *x);
 	}
 	tree.push_back(node);
@@ -149,12 +170,13 @@ make_tree(std::vector<Node>& tree, const Seq& seq,
   }
 
   // trace back from root nodes
+  BPProfileMaker maker(seq);
   CYKTable<uint> vt(seq.size());
   vt.fill(static_cast<uint>(-1));
   for (uint i=0; i!=seq.size(); ++i) {
     std::list<Pos>::const_reverse_iterator x;
     for (x=head[i].rbegin(); x!=head[i].rend(); ++x) {
-      make_tree_helper(tree, seq, vt, pf, bp, *x);
+      make_tree_helper(tree, maker, vt, pf, bp, *x);
     }
   }
 }
@@ -215,53 +237,6 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x)
   }
 }
 
-template <>
-//static
-void
-convert_seq(const std::string& in, std::vector<LoopFreq>& out)
-{
-  RNASequence a;
-  char2rna(a, in);
-  out.resize(a.size());
-  for (uint j=0; j!=out.size(); ++j) {
-    if (a[j] != RNASymbol<RNASequence::value_type>::GAP) {
-      for (uint k=0; k!=N_RNA; ++k) {
-	out[j][k] += iupac_weight[a[j]][k];
-      }	  
-    }
-  }
-}
-
-template <>
-//static
-void
-convert_seq(const MASequence<std::string>& in, std::vector<LoopFreq>& out)
-{
-  for (uint i=0; i!=in.n_seqs(); ++i) {
-    RNASequence a;
-    char2rna(a, in.get_seq(i));
-    out.resize(a.size());
-    for (uint j=0; j!=out.size(); ++j) {
-      if (a[j] != RNASymbol<RNASequence::value_type>::GAP) {
-	for (uint k=0; k!=N_RNA; ++k) {
-	  out[j][k] += iupac_weight[a[j]][k];
-	}	  
-      }
-    }
-  }
-}
-
-template <>
-//static
-void
-convert_seq(const MASequence<std::string>& in, MASequence<RNASequence>& out)
-{
-  for (uint i=0; i!=in.n_seqs(); ++i) {
-    RNASequence a;
-    char2rna(a, in.get_seq(i));
-    out.add_seq(a);
-  }
-}
 
 enum { TP_UNKNOWN, TP_FA, TP_ALN, TP_MAF };
 
@@ -359,7 +334,7 @@ DataLoader<MData>::
 get()
 {
   bool ret=false;
-  MASequence<std::string> ma;
+  std::list<std::string> ma;
   switch (type_) {
   case TP_FA:
     ret=load_fa(ma, fi_);
@@ -404,7 +379,7 @@ get_loader(const char* filename) const
 #include "../common/rna.h"
 
 template
-class Data<RNASequence,std::string>;
+class Data<ProfileSequence, std::string>;
 
 template
-class Data<std::vector<LoopFreq>, MASequence<std::string> >;
+class Data<ProfileSequence, std::list<std::string> >;

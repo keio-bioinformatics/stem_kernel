@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifndef __INC_PROFILE_H__
 #define __INC_PROFILE_H__
@@ -42,6 +42,15 @@ public:
     for (It x=b; x!=e; ++x) add_sequence(*x);
   }
 
+  template < class T >
+  ProfileSequence(const T& ma)
+    : n_seqs_(0), profile_()
+  {
+    initialize(ma.begin()->size());
+    typename T::const_iterator x;
+    for (x=ma.begin(); x!=ma.end(); ++x) add_sequence(*x);
+  }
+
   ProfileSequence& operator=(const ProfileSequence& s);
 
   value_type n_seqs() const { return n_seqs_; }
@@ -79,14 +88,31 @@ public:
 
   template < class It >
   BPProfileMaker(It b, It e)
-    : ma_(b->size()), std::vector<rna_t>(std::distance(b,e), 0.0)
+    : ma_(b->size(), std::vector<rna_t>(std::distance(b,e), 0.0))
   {
     uint n=0;
     for (It x=b; x!=e; ++x) add_sequence(*x, n++);
   }
 
+  template < class T >
+  BPProfileMaker(const T& ma)
+    : ma_(ma.begin()->size(), std::vector<rna_t>(ma.size(), 0.0))
+  {
+    uint n=0;
+    typename T::const_iterator x;
+    for (x=ma.begin(); x!=ma.end(); ++x) add_sequence(*x, n++);
+  }
+
+  template < class T >
+  BPProfileMaker(const MASequence<T>& ma);
+
   void make_profile(value_type p, uint i, uint j,
 		    std::map<bp_t, value_type>& v) const;
+
+  void make_profile(const std::vector<value_type>& p, uint i, uint j,
+		    std::map<bp_t, value_type>& v) const;
+
+  uint n_seqs() const { return ma_[0].size(); }
 
 private:
   void add_sequence(const std::string& seq, uint n);

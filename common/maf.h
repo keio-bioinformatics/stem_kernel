@@ -16,6 +16,10 @@ load_maf(MASequence<Seq>& ma, boost::spirit::file_iterator<>& fi);
 
 template < class Seq >
 bool
+load_maf(std::list<Seq>& ma, boost::spirit::file_iterator<>& fi);
+
+template < class Seq >
+bool
 load_maf(std::list< MASequence<Seq> >& ma, const char* filename);
 
 class MAF

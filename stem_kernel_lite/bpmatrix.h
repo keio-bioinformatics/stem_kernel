@@ -34,6 +34,8 @@ public:
 
   BPMatrix(const MASequence<std::string>& ma, const Options& opts);
 
+  BPMatrix(const std::list<std::string>& ma, const Options& opts);
+
   double operator()(uint i, uint j) const
   {
     return table_(i,j);

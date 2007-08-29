@@ -73,6 +73,26 @@ load_maf(MASequence<Seq>& ma, file_iterator<>& fi)
 
 template < class Seq >
 bool
+load_maf(std::list<Seq>& ma, file_iterator<>& fi)
+{
+  std::list<std::string> seqs;
+  maf_parser parser(seqs);
+  parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
+  if (!info.hit) return false;
+  fi = info.stop;
+
+  MASequence<Seq> m;
+  std::list<std::string>::const_iterator x;
+  for (x=seqs.begin(); x!=seqs.end(); ++x) {
+    Seq r;
+    char2rna(r, *x);
+    ma.push_back(r);
+  }
+  return true;
+}
+
+template < class Seq >
+bool
 load_maf(std::list< MASequence<Seq> >& ma, const char* filename)
 {
   uint n=0;
@@ -144,3 +164,11 @@ template
 bool
 MAF::
 get(MASequence<std::string>& ma);
+
+template
+bool
+load_maf(MASequence<std::string>& ma, file_iterator<>& fi);
+
+template
+bool
+load_maf(std::list<std::string>& ma, file_iterator<>& fi);

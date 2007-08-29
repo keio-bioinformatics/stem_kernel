@@ -127,6 +127,25 @@ load_aln(MASequence<Seq>& ma, file_iterator<>& fi)
 
 template < class Seq >
 bool
+load_aln(std::list<Seq>& ma, file_iterator<>& fi)
+{
+  aln_parser::WA wa;
+  aln_parser parser(wa);
+  parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
+  if (!info.hit) return false;
+  fi = info.stop;
+
+  std::deque<std::string>::const_iterator x;
+  for (x=wa.seqs.begin(); x!=wa.seqs.end(); ++x) {
+    Seq r;
+    char2rna(r, *x);
+    ma.push_back(r);
+  }
+  return true;
+}
+
+template < class Seq >
+bool
 load_aln(std::list< MASequence<Seq> >& ma, const char* filename)
 {
   uint n=0;
@@ -158,3 +177,11 @@ load_aln(std::list< MASequence<RNASequence> >& ma, const char* filename);
 template
 bool
 load_aln(std::list< MASequence<std::string> >& ma, const char* filename);
+
+template
+bool
+load_aln(MASequence<std::string>& ma, file_iterator<>& fi);
+
+template
+bool
+load_aln(std::list<std::string>& ma, file_iterator<>& fi);

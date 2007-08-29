@@ -13,6 +13,10 @@ load_aln(MASequence<Seq>& ma, boost::spirit::file_iterator<>& fi);
 
 template < class Seq >
 bool
+load_aln(std::list<Seq>& ma, boost::spirit::file_iterator<>& fi);
+
+template < class Seq >
+bool
 load_aln(std::list< MASequence<Seq> >& ma, const char* filename);
 
 #endif	// __INC_ALN_H__

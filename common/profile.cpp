@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -68,6 +68,33 @@ make_profile(value_type p, uint i, uint j,
 	  v.insert(std::make_pair(k, p*aw*bw));
 	} else {
 	  x->second += p*aw*bw;
+	}
+      }
+    }
+  }
+}
+
+// public
+void
+BPProfileMaker::
+make_profile(const std::vector<value_type>& p, uint i, uint j,
+	     std::map<bp_t, value_type>& v) const
+{
+  if (p.size()!=ma_[0].size()) throw "size error";
+
+  for (uint n=0; n!=ma_[0].size(); ++n) {
+    for (uint a=0; a!=N_RNA; ++a) {
+      float aw=iupac_weight[ma_[i][n]][a];
+      if (aw==0.0) continue;
+      for (uint b=0; b!=N_RNA; ++b) {
+	float bw=iupac_weight[ma_[j][n]][b];
+	if (bw==0.0) continue;
+	bp_t k = std::make_pair(a,b);
+	std::map<bp_t, value_type>::iterator x = v.find(k);
+	if (x==v.end()) {
+	  v.insert(std::make_pair(k, p[n]*aw*bw));
+	} else {
+	  x->second += p[n]*aw*bw;
 	}
       }
     }

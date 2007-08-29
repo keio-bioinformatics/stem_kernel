@@ -73,21 +73,19 @@ namespace DAG {
     {
     }
 
-#if 0
-    template < class C >
-    Node(uint first, uint last, const C& c_first, const C& c_last,
-	 float weight=1.0, uint n_edges=0);
+    Node(uint first, uint last, const std::list<bp_freq_t>& bp_freq,
+	 uint n_edges=0, float weight=1.0)
+      : first_(first), last_(last),
+	edges_(n_edges), weight_(weight), bp_freq_(bp_freq)
+    {
+    }
 
-    template < class C >
-    Node(const Pos& pos, const C& c_first, const C& c_last,
-	 float weight=1.0, uint n_edges=0);
-#else
-    template < class Seq, class BPM >
-    Node(uint first, uint last, const Seq& seq, const BPM& bpm, uint n_edges=0);
-
-    template < class Seq, class BPM >
-    Node(const Pos& pos, const Seq& seq, const BPM& bpm, uint n_edges=0);
-#endif
+    Node(const Pos& pos, const std::list<bp_freq_t>& bp_freq,
+	 uint n_edges=0, float weight=1.0)
+      : first_(pos.first), last_(pos.second),
+	edges_(n_edges), weight_(weight), bp_freq_(bp_freq)
+    {
+    }
 
     Node(uint first, uint last, float weight=1.0)
       : first_(first), last_(last),

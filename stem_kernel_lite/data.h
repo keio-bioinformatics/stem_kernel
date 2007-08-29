@@ -7,6 +7,7 @@
 #include <boost/spirit/iterator/file_iterator.hpp>
 #include "dag.h"
 #include "bpmatrix.h" // for definitions folding methods
+#include "../common/profile.h"
 namespace Vienna {
   extern "C" {
 #include <ViennaRNA/utils.h>
@@ -39,6 +40,7 @@ struct Data
   }
 };
 
+#if 0
 struct LoopFreq
 {
   std::vector<float> freq_;
@@ -48,6 +50,7 @@ struct LoopFreq
   float operator[](uint i) const { return freq_[i]; }
   float& operator[](uint i) { return freq_[i]; }
 };
+#endif
 
 #if 0
 typedef Data<std::string> SData;
@@ -55,8 +58,8 @@ typedef Data< MASequence<std::string> > MData;
 #else
 //typedef Data<RNASequence,std::string> SData;
 //typedef Data< MASequence<RNASequence>,MASequence<std::string> > MData;
-typedef Data< std::vector<LoopFreq>, std::string> SData;
-typedef Data< std::vector<LoopFreq>, MASequence<std::string> > MData;
+typedef Data< ProfileSequence, std::string> SData;
+typedef Data< ProfileSequence, std::list<std::string> > MData;
 #endif
 
 template < class D >

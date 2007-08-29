@@ -78,8 +78,14 @@ make_bp_matrix(BPMatrix& bp, const std::string &x,
 
 static
 bool
+make_bp_matrix(BPMatrix& bp, const std::list<std::string>& x,
+	       const BPMatrix::Options& opts);
+
+#if 0
+bool
 make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
 	       const BPMatrix::Options& opts);
+#endif
 
 
 BPMatrix::
@@ -91,7 +97,7 @@ BPMatrix(const std::string& s, const Options& opts)
 }
 
 BPMatrix::
-BPMatrix(const MASequence<std::string>& ma, const Options& opts)
+BPMatrix(const std::list<std::string>& ma, const Options& opts)
   : sz_(ma.size()), table_(sz_+1)
 {
   table_.fill(0.0);
@@ -208,9 +214,9 @@ make_index_map(const Seq& seq, std::vector<uint>& idxmap)
   typedef typename Seq::value_type rna_type;
   const rna_type GAP = RNASymbol<rna_type>::GAP;
 
-  idxmap.resize(seq.size());
+  idxmap.resize(seq.size(), static_cast<uint>(-1));
   for (uint i=0, j=0; i!=seq.size(); ++i) {
-    if (seq[i]!=GAP) idxmap[j++]=i;
+    if (seq[i]!=GAP) idxmap[i]=j++;
   }
 }
 
@@ -230,10 +236,14 @@ average_matrix(BPMatrix& bp,
   for (a=ali.begin(), b=bps.begin(); a!=ali.end() && b!=bps.end(); ++a, ++b) {
     std::vector<uint> idxmap;
     make_index_map(*a, idxmap);
-    for (uint j=1; j!=(*b)->size(); ++j) {
-      for (uint i=j-1; /*i>=0*/; --i) {
-	bp(idxmap[i]+1,idxmap[j]+1) += (**b)(i+1,j+1);
-	if (i==0) break;
+    for (uint j=1; j!=bp.size(); ++j) {
+      if (idxmap[j]!=static_cast<uint>(-1)) {
+	for (uint i=j-1; /*i>=0*/; --i) {
+	  if (idxmap[i]!=static_cast<uint>(-1)) {
+	    bp(i+1,j+1) += (**b)(idxmap[i]+1,idxmap[j]+1);
+	  }
+	  if (i==0) break;
+	}
       }
     }
     bp.add_matrix(*b, idxmap);
@@ -251,7 +261,7 @@ average_matrix(BPMatrix& bp,
 // folding for aligned sequences
 static
 bool
-make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
+make_bp_matrix(BPMatrix& bp, const std::list<std::string>& ma,
 	       const BPMatrix::Options& opts)
 {
   switch (opts.method()) {
@@ -262,14 +272,15 @@ make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
       boost::mutex::scoped_lock lock(mtx);
 #endif
       // prepare an alignment
-      uint length = x.get_seq(0).size();
-      char** seqs = new char*[x.n_seqs()+1];
-      seqs[x.n_seqs()]=NULL;
-      for (uint i=0; i!=x.n_seqs(); ++i) {
-	std::string s(x.get_seq(i));
-	assert(s.size()==length);
+      uint length = ma.begin()->size();
+      char** seqs = new char*[ma.size()+1];
+      seqs[ma.size()]=NULL;
+      std::list<std::string>::const_iterator x;
+      uint i=0;
+      for (x=ma.begin(); x!=ma.end(); ++x) {
+	assert(x->size()==length);
 	seqs[i] = new char[length+1];
-	strcpy(seqs[i], s.c_str());
+	strcpy(seqs[i++], x->c_str());
       }
       {
 	// scaling parameters to avoid overflow
@@ -286,7 +297,7 @@ make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
       for (uint k=0; pi[k].i!=0; ++k)
 	bp(pi[k].i, pi[k].j) = pi[k].p;
       free(pi);
-      for (uint i=0; i!=x.n_seqs(); ++i) delete[] seqs[i];
+      for (uint i=0; seqs[i]!=NULL; ++i) delete[] seqs[i];
       delete[] seqs;
       return true;
     }
@@ -298,8 +309,9 @@ make_bp_matrix(BPMatrix& bp, const MASequence<std::string>& x,
     {
       std::list<std::string> ali;
       std::list<BPMatrixPtr> bps;
-      for (uint i=0; i!=x.n_seqs(); ++i) {
-	std::string s(x.get_seq(i));
+      std::list<std::string>::const_iterator x;
+      for (x=ma.begin(); x!=ma.end(); ++x) {
+	std::string s(*x);
 	boost::algorithm::to_lower(s);
 	ali.push_back(s);
 	s=erase_gap(s);

@@ -32,7 +32,8 @@ template < class ST >
 static
 inline
 typename ST::element
-subst_score(const ST& st, const LoopFreq& x, const LoopFreq& y)
+subst_score(const ST& st,
+	    const ProfileSequence::Column& x, const ProfileSequence::Column& y)
 {
   typedef typename ST::element value_type;
   value_type v_c = 0.0;

@@ -7,6 +7,7 @@
 
 using namespace DAG;
 
+#if 0
 template < class BPM >
 static
 void
@@ -65,7 +66,9 @@ make_cnt(std::list<bp_freq_t>& bp_freq, uint i, uint j,
     bp_freq.push_back(*y);
   }
 }
+#endif
 
+#if 0
 template < class E >
 template < class Seq, class BPM >
 Node<E>::
@@ -84,7 +87,6 @@ Node(const Pos& pos, const Seq& seq, const BPM& bpm, uint n_edges)
 {
   make_cnt(bp_freq_, first_, last_, seq, bpm);
 }
-
 
 // instantiation
 
@@ -122,6 +124,8 @@ Node(const Pos& pos, const std::string& seq,
 
 template
 Node<Edge>::
-  Node(const Pos& pos, const MASequence<std::string>& seq,
-       const BPMatrix& bpm, uint n_edges);
+Node(const Pos& pos, const std::list<std::string>& seq,
+     const BPMatrix& bpm, uint n_edges);
+#endif
+
 #endif
