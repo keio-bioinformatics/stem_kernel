@@ -10,6 +10,7 @@
 #include <sstream>
 #include <glob.h>
 #include <boost/program_options.hpp>
+#include <boost/timer.hpp>
 #include "../common/kernel_matrix.h"
 #include "../libsvm/svm_util.h"
 #ifdef HAVE_MPI
@@ -133,7 +134,7 @@ private:
     if (MPI::COMM_WORLD.Get_rank()==0) {
 #endif
       try {
-	std::cout << "elapsed time: " << elapsed << " s" << std::endl;
+	std::cout << "elapsed time: " << elapsed << "s" << std::endl;
 	std::ofstream out(opts_.output.c_str());
 	if (!out) throw opts_.output.c_str();
 	matrix.print(out);
@@ -191,14 +192,25 @@ private:
     }
 #endif
   
-    if (opts_.normalize)
-      KernelMatrix<value_type>::
+    if (opts_.normalize) {
+      double e = KernelMatrix<value_type>::
 	diagonal(diag, ex, opts_.sv_index, kernel_, opts_.n_th);
+      std::cout << "elapsed time form calculating diagonals: "
+		<< e << "s" << std::endl;
+    }
 
     uint cnt=0;
-    for (uint i=0; i!=opts_.ts_files.size(); ++i) {
-      bool norm = opts_.normalize || !opts_.norm_output.empty();
+    bool norm = opts_.normalize || !opts_.norm_output.empty();
 
+    for (uint i=0; i!=opts_.ts_files.size(); ++i) {
+      double elapsed = 0.0;
+#ifdef HAVE_MPI
+      if (rank==0) {
+#endif
+	std::cout << "predicting " << opts_.ts_files[i] << std::flush;
+#ifdef HAVE_MPI
+      }
+#endif
       Glob glob(opts_.ts_files[i].c_str());
       if (glob.empty()) {
 	std::ostringstream os;
@@ -208,20 +220,16 @@ private:
       }
       Glob::const_iterator p;
       for (p=glob.begin(); p!=glob.end(); ++p) {
-#ifdef HAVE_MPI
-	if (rank==0) {
-#endif
-	  std::cout << "predicting " << *p << std::endl;
-#ifdef HAVE_MPI
-	}
-#endif
 	typename LDF::Loader* loader=ldf_.get_loader(p->c_str());
 	if (loader==NULL) return false;
 	
-	Data* data;
-	while ((data=loader->get())!=NULL) {
+	while (true) {
+	  boost::timer tm;
+	  Data* data = loader->get();
+	  elapsed += tm.elapsed();
+	  if (data==NULL) break;
 	  value_type self;
-	  KernelMatrix<value_type>::
+	  elapsed += KernelMatrix<value_type>::
 	    calculate(vec, std::make_pair(opts_.ts_labels[i], *data),
 		      ex, opts_.sv_index, kernel_, opts_.n_th,
 		      norm ? &self : NULL);
@@ -241,6 +249,13 @@ private:
 	}
 	delete loader;
       }
+#ifdef HAVE_MPI
+      if (rank==0) {
+#endif
+	std::cout << " (" << elapsed << "s) done." << std::endl;
+#ifdef HAVE_MPI
+      }
+#endif
     }
     if (out) delete out;
     return true;
@@ -252,6 +267,7 @@ private:
   {
     assert(labels.size()==files.size());
     for (uint i=0; i!=files.size(); ++i) {
+      double elapsed = 0.0;
 #ifdef HAVE_MPI
       if (MPI::COMM_WORLD.Get_rank()==0) {
 #endif
@@ -271,8 +287,11 @@ private:
       for (p=glob.begin(); p!=glob.end(); ++p) {
 	typename LDF::Loader* loader=ldf_.get_loader(p->c_str());
 	if (loader==NULL) return false;
-	Data* d;
-	while ((d=loader->get())!=NULL) {
+	while (true) {
+	  boost::timer tm;
+	  Data* d = loader->get();
+	  elapsed += tm.elapsed();
+	  if (d==NULL) break;
 	  ex.push_back(std::make_pair(labels[i], *d));
 	  delete d;
 	}
@@ -281,7 +300,7 @@ private:
 #ifdef HAVE_MPI
       if (MPI::COMM_WORLD.Get_rank()==0) {
 #endif
-	std::cout << " done." << std::endl;
+	std::cout << " (" << elapsed << "s) done." << std::endl;
 #ifdef HAVE_MPI
       }
 #endif
