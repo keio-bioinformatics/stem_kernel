@@ -8,13 +8,26 @@
 
 template < class V, class D >
 StringKernel<V,D>::
-StringKernel(const value_type& gap, const value_type& alpha)
-  : gap_(gap), alpha_(alpha),
-    si_subst_(boost::extents[N_RNA][N_RNA])
+StringKernel(value_type gap, value_type alpha)
+  : gap_(gap), 
+    subst_(boost::extents[N_RNA][N_RNA])
 {
   for (uint i=0; i!=N_RNA; ++i) {
     for (uint k=0; k!=N_RNA; ++k) {
-      si_subst_[i][k] = exp(ribosum_s[i][k] * alpha_);
+      subst_[i][k] = exp(ribosum_s[i][k] * alpha);
+    }
+  }
+}
+
+template < class V, class D >
+StringKernel<V,D>::
+StringKernel(value_type gap, value_type match, value_type mismatch)
+  : gap_(gap), 
+    subst_(boost::extents[N_RNA][N_RNA])
+{
+  for (uint i=0; i!=N_RNA; ++i) {
+    for (uint k=0; k!=N_RNA; ++k) {
+      subst_[i][k] = i==k ? match : mismatch;
     }
   }
 }
@@ -104,7 +117,7 @@ operator()(const Data& xx, const Data& yy) const
       K1[0] = G1[0] = 0.0;
       for (uint j=1; j!=sz_y+1; ++j) {
 	value_type v = G0[i-1][j-1]*w_x[i-1]*w_y[j-1];
-	v *= subst_score(si_subst_, x[i-1], y[j-1]);
+	v *= subst_score(subst_, x[i-1], y[j-1]);
 	K1[j] = v + K1[j-1];
 	G1[j] = v + G1[j-1]*gap_;
 	K0[i][j] = K1[j] + K0[i-1][j];
@@ -116,7 +129,7 @@ operator()(const Data& xx, const Data& yy) const
       K1[0] = G1[0] = 0.0;
       for (uint j=1; j!=sz_y+1; ++j) {
 	value_type v = G0[i-1][j-1];
-	v *= subst_score(si_subst_, x[i-1], y[j-1]);
+	v *= subst_score(subst_, x[i-1], y[j-1]);
 	K1[j] = v + K1[j-1];
 	G1[j] = v + G1[j-1]*gap_;
 	K0[i][j] = K1[j] + K0[i-1][j];

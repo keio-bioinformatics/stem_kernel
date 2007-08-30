@@ -84,10 +84,12 @@ public:
   value_type edge_score(const WorkArea& wa,
 			const Data& xx, const Edge& ix, uint i) const;
 
+#if 0
   value_type edge_ext_score(const WorkArea& wa,
 			    const Data& xx, const Data& yy,
 			    const Edge& ix, const Edge& iy,
 			    uint i, uint j) const;
+#endif
 
 private:
   value_type gap_;
@@ -120,10 +122,12 @@ public:
   value_type edge_score(const WorkArea& wa,
 			const Data& xx, const Edge& ix, uint i) const;
 
+#if 0
   value_type edge_ext_score(const WorkArea& wa,
 			    const Data& xx, const Data& yy,
 			    const Edge& ix, const Edge& iy,
 			    uint i, uint j) const;
+#endif
 
 private:
   value_type gap_;

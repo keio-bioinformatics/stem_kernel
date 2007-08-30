@@ -59,6 +59,34 @@ private:
 };
 
 template <class V, class D>
+class SiStemStrKernel
+{
+public:
+  typedef V value_type;
+  typedef D Data;
+
+public:
+  SiStemStrKernel(value_type gap, value_type stack, value_type covar,
+		  value_type loop_gap, value_type match, value_type mismatch,
+		  uint len_band)
+    : stem_(gap, stack, covar, loop_gap),
+      str_(loop_gap, match, mismatch),
+      k_(stem_,str_)
+  {
+  }
+
+  value_type operator()(const D& x, const D& y) const
+  {
+    return k_(x,y);
+  }
+
+private:
+  SiStemKernel<V,D> stem_;
+  StringKernel<V,D> str_;
+  AddKernel<SuStemKernel<V,D>, StringKernel<V,D> > k_;
+};
+
+template <class V, class D>
 class SuStemStrKernel
 {
 public:
@@ -167,3 +195,6 @@ private:
 
 #endif
 
+// Local Variables:
+// mode: C++
+// End:

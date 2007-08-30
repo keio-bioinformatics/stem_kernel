@@ -13,7 +13,8 @@ public:
   typedef D Data;
 
 public:
-  StringKernel(const value_type& gap, const value_type& alpha);
+  StringKernel(value_type gap, value_type alpha);
+  StringKernel(value_type gap, value_type match, value_type mismatch);
 
   value_type operator()(const Data& xx, const Data& yy) const;
 
@@ -25,8 +26,7 @@ public:
 
 private:
   value_type gap_;
-  value_type alpha_;
-  boost::multi_array<value_type,2> si_subst_;
+  boost::multi_array<value_type,2> subst_;
 };
 
 #endif	// __INC_STRING_KERNEL_H__

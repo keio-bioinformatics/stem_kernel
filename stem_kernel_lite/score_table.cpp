@@ -107,6 +107,7 @@ edge_score(const WorkArea& wa,
   return g[ix.gaps()];
 }
 
+#if 0
 // edge and extented node score for MATCH where node does not use for STEM
 template < class V, class D >
 typename SimpleEdgeScore<V,D>::value_type
@@ -120,6 +121,7 @@ edge_ext_score(const WorkArea& wa,
   const std::vector<value_type>& g(gap_vec_);
   return g[4]*g[ix.gaps()]*g[iy.gaps()];
 }
+#endif
 
 template < class V, class D >
 SubstNodeScore<V,D>::

@@ -1,4 +1,4 @@
-// $Id:$
+// $Id$
 
 #ifndef __INC_CONV_KERNEL_H__
 #define __INC_CONV_KERNEL_H__
@@ -100,3 +100,7 @@ private:
 };
 
 #endif	// __INC_CONV_KERNEL_H__
+
+// Local Variables:
+// mode: C++
+// End:
