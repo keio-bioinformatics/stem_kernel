@@ -62,12 +62,6 @@ initialize(WorkArea& wa, const Data& xx, const Data& yy) const
 {
   const Seq& seq_x(xx.seq);
   const Seq& seq_y(yy.seq);
-#if 0
-  std::vector<value_type>& g(wa.gap);
-  g.resize(std::max(seq_x.size(),seq_y.size()));
-  g[0]=1.0;
-  for (uint i=1; i!=g.size(); ++i) g[i]=g[i-1]*gap_;
-#else
   uint cur_sz=(std::max(seq_x.size(),seq_y.size()))*2;
   if (gap_vec_.empty()) {
     gap_vec_.resize(cur_sz);
@@ -78,7 +72,6 @@ initialize(WorkArea& wa, const Data& xx, const Data& yy) const
     gap_vec_.resize(cur_sz);
     for (uint i=old_sz; i!=cur_sz; ++i) gap_vec_[i]=gap_vec_[i-1]*gap_;
   }    
-#endif
 }
 
 // edge score for MATCH
@@ -90,9 +83,8 @@ edge_score(const WorkArea& wa,
 	   const Edge& ix, const Edge& iy,
 	   uint i, uint j) const
 {
-  //const std::vector<value_type>& g(wa.gap);
   const std::vector<value_type>& g(gap_vec_);
-  return g[ix.gaps()]*g[iy.gaps()];
+  return g[ix.gaps()]*g[iy.gaps()]*ix.weight()*iy.weight();
 }
 
 // edge score for GAP
@@ -102,9 +94,8 @@ SimpleEdgeScore<V,D>::
 edge_score(const WorkArea& wa,
 	   const Data& xx, const Edge& ix, uint i) const
 {
-  //const std::vector<value_type>& g(wa.gap);
   const std::vector<value_type>& g(gap_vec_);
-  return g[ix.gaps()];
+  return g[ix.gaps()]*ix.weight();
 }
 
 #if 0
@@ -117,7 +108,6 @@ edge_ext_score(const WorkArea& wa,
 	       const Edge& ix, const Edge& iy,
 	       uint i, uint j) const
 {
-  //const std::vector<value_type>& g(wa.gap);
   const std::vector<value_type>& g(gap_vec_);
   return g[4]*g[ix.gaps()]*g[iy.gaps()];
 }

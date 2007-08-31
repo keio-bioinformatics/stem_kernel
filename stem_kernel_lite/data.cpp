@@ -21,7 +21,7 @@ template < class Seq, class BPM, class Node >
 static
 void
 make_tree(std::vector<Node>& tree, const Seq& seq,
-	  const BPM& pf, double th);
+	  const BPM& pf, const std::vector<float>& weight, double th);
 
 template < class Node >
 static
@@ -44,10 +44,10 @@ Data(const IS& s, const BPMatrix::Options& opts)
   : tree(), seq(s), root(), weight(seq.size()), max_pa()
 {
   BPMatrix bp(s, opts);
-  make_tree(tree, s, bp, opts.th);
+  fill_weight(bp, weight);
+  make_tree(tree, s, bp, weight, opts.th);
   find_root(root, tree);
   find_max_parent(max_pa, tree);
-  fill_weight(bp, weight);
 }
  
 template < class S, class IS, class N >
@@ -86,6 +86,36 @@ make_bp_profile(std::list<DAG::bp_freq_t>& bp_freq, uint i, uint j,
   }
 }
 
+static
+float
+calc_edge_weight(const std::vector<float>& weight, const Pos& p_pos)
+{
+  assert(p_pos.first<p_pos.second);
+
+  float ret = 1.0;
+  for (uint i=p_pos.first+1; i!=p_pos.second; ++i)
+    ret *= weight[i];
+
+  return ret;
+}
+
+static
+float
+calc_edge_weight(const std::vector<float>& weight,
+		 const Pos& p_pos, const Pos& c_pos)
+{
+  assert(p_pos.first<c_pos.first);
+  assert(c_pos.second<p_pos.second);
+
+  float ret = 1.0;
+  for (uint i=p_pos.first+1; i!=c_pos.first; ++i)
+    ret *= weight[i];
+  for (uint i=c_pos.second+1; i!=p_pos.second; ++i)
+    ret *= weight[i];
+
+  return ret;
+}
+
 template < class BPM, class Node >
 static
 uint
@@ -94,6 +124,7 @@ make_tree_helper(std::vector<Node>& tree,
 		 CYKTable<uint>& vt,
 		 const BPM& pf,
 		 const CYKTable< std::list<Pos> >& table,
+		 const std::vector<float>& weight,
 		 const Pos& pos)
 {
   typedef typename Node::Edge Edge;
@@ -109,8 +140,9 @@ make_tree_helper(std::vector<Node>& tree,
 	make_bp_profile(bp_freq, pos.first, pos.second, maker, pf);
 	Node node(pos, bp_freq, 1);
 	uint ret=make_tree_helper(tree, maker, vt, pf, table,
-				  Pos(pos.first, pos.first));
-	node[0] = Edge(ret, pos);
+				  weight, Pos(pos.first, pos.first));
+	float e_w = calc_edge_weight(weight, pos);
+	node[0] = Edge(ret, pos, e_w);
 	tree.push_back(node);
 	vt(pos)=tree.size()-1;
       } else {
@@ -120,8 +152,9 @@ make_tree_helper(std::vector<Node>& tree,
 	std::list<Pos>::const_iterator x;
 	uint i;
 	for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
-	  uint ret=make_tree_helper(tree, maker, vt, pf, table, *x);
-	  node[i] = Edge(ret, pos, *x);
+	  float e_w = calc_edge_weight(weight, pos, *x);
+	  uint ret=make_tree_helper(tree, maker, vt, pf, table, weight, *x);
+	  node[i] = Edge(ret, pos, *x, e_w);
 	}
 	tree.push_back(node);
 	vt(pos)=tree.size()-1;
@@ -158,7 +191,7 @@ template < class Seq, class BPM, class Node >
 static
 void
 make_tree(std::vector<Node>& tree, const Seq& seq,
-	  const BPM& pf, double th)
+	  const BPM& pf, const std::vector<float>& weight, double th)
 {
   // scan the matrix in bottom up order
   uint sz = seq_size(seq);
@@ -194,7 +227,7 @@ make_tree(std::vector<Node>& tree, const Seq& seq,
   for (uint i=0; i!=sz; ++i) {
     std::list<Pos>::const_reverse_iterator x;
     for (x=head[i].rbegin(); x!=head[i].rend(); ++x) {
-      make_tree_helper(tree, maker, vt, pf, bp, *x);
+      make_tree_helper(tree, maker, vt, pf, bp, weight, *x);
     }
   }
 }

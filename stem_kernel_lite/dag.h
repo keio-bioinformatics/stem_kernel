@@ -17,23 +17,25 @@ namespace DAG {
   class Edge
   {
   public:
-    Edge() : to_(static_cast<uint>(-1)), gaps_(0) { }
+    Edge() : to_(static_cast<uint>(-1)), gaps_(0), weight_(1.0) { }
 
-    Edge(uint to, const Pos& p_pos, const Pos& c_pos)
-      : to_(to), gaps_(0), p_pos_(p_pos), c_pos_(c_pos)
+    Edge(uint to, const Pos& p_pos, const Pos& c_pos, float weight=1.0)
+      : to_(to), gaps_(0), p_pos_(p_pos), c_pos_(c_pos), weight_(weight)
     {
       gaps_  = c_pos_.first - p_pos_.first - 1;
       gaps_ += p_pos_.second - c_pos_.second - 1;
     }
 
-    Edge(uint to, const Pos& p_pos)
-      : to_(to), gaps_(0), p_pos_(p_pos), c_pos_(p_pos)
+    Edge(uint to, const Pos& p_pos, float weight=1.0)
+      : to_(to), gaps_(0), p_pos_(p_pos), c_pos_(p_pos), weight_(weight)
     {
       gaps_ = p_pos_.second - p_pos_.first - 1;
     }
 
     Edge(const Edge& e)
-      : to_(e.to_), gaps_(e.gaps_), p_pos_(e.p_pos_), c_pos_(e.c_pos_)
+      : to_(e.to_), gaps_(e.gaps_),
+	p_pos_(e.p_pos_), c_pos_(e.c_pos_),
+	weight_(e.weight_)
     { }
 
     Edge& operator=(const Edge& e)
@@ -43,6 +45,7 @@ namespace DAG {
 	gaps_ = e.gaps_;
 	p_pos_ = e.p_pos_;
 	c_pos_ = e.c_pos_;
+	weight_ = e.weight_;
       }
       return *this;
     }
@@ -51,12 +54,14 @@ namespace DAG {
     uint to() const { return to_; }
     const Pos& p_pos() const { return p_pos_; }
     const Pos& c_pos() const { return c_pos_; }
+    float weight() const { return weight_; }
       
   private:
     uint to_;
     uint gaps_;
     Pos p_pos_;
     Pos c_pos_;
+    float weight_;
   };
 
   template < class E = Edge >
