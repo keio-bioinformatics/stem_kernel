@@ -138,7 +138,7 @@ namespace DAG {
 
     uint first() const { return first_; }
     uint last() const { return last_; }
-    float weight() const { return weight_; }
+    //float weight() const { return weight_; }
     //const std::list<bp_freq_t>& cnt() const { return bp_freq_; }
     bp_freq_iterator bp_freq_begin() const { return bp_freq_.begin(); }
     bp_freq_iterator bp_freq_end() const { return bp_freq_.end(); }

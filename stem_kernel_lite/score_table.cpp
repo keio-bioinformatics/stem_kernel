@@ -40,35 +40,33 @@ simple_node_score(const V& covar, const N& x, const N& y)
 template < class V, class D >
 typename SimpleNodeScore<V,D>::value_type
 SimpleNodeScore<V,D>::
-node_score(const Data& xx, const Data& yy,
-	   uint i, uint j) const
+node_score(const Data& xx, const Data& yy, uint i, uint j) const
 {
   const std::vector<Node>& x(xx.tree);
   const std::vector<Node>& y(yy.tree);
-  const std::vector<float>& x_w(xx.weight);
-  const std::vector<float>& y_w(yy.weight);
   float x_seqs = xx.seq.n_seqs();
   float y_seqs = yy.seq.n_seqs();
 
   //value_type v_s = x[i].weight()*y[j].weight();
-  
+
+  float n = 0.0;
   value_type v_c = 0.0;
   DAG::bp_freq_iterator ix,iy;
   float x_n = x_seqs;
-  for (ix=x.bp_freq_begin(); ix!=x.bp_freq_end(); ++ix) {
-    rna_t i = ix->first.first;
-    rna_t j = ix->first.second;
+  for (ix=x[i].bp_freq_begin(); ix!=x[i].bp_freq_end(); ++ix) {
+    rna_t a = ix->first.first;
+    rna_t b = ix->first.second;
     float cx = ix->second;
     x_n -= cx;
 
     float y_n = y_seqs;
-    for (iy=y.bp_freq_begin(); iy!=y.bp_freq_end(); ++iy) {
-      rna_t k = iy->first.first;
-      rna_t l = iy->first.second;
+    for (iy=y[j].bp_freq_begin(); iy!=y[j].bp_freq_end(); ++iy) {
+      rna_t c = iy->first.first;
+      rna_t d = iy->first.second;
       float cy = iy->second;
       y_n -= cy;
 
-      value_type v = (i!=k || j!=l) ? mismatch_ : match_;
+      value_type v = (a!=c || b!=d) ? mismatch_ : match_;
       v_c += v*cx*cy;
       n += cx*cy;
     }
@@ -77,8 +75,7 @@ node_score(const Data& xx, const Data& yy,
     
   }
 
-  v_s *= simple_node_score(covar_, x[i], y[j]);
-  return v_s;
+  return v_c/n;
 }
 
 // static private
@@ -196,8 +193,7 @@ node_score(const Data& xx, const Data& yy,
 {
   const std::vector<Node>& x(xx.tree);
   const std::vector<Node>& y(yy.tree);
-  value_type v_s = x[i].weight()*y[j].weight();
-  v_s *= subst_node_score(co_subst_, x[i], y[j]);
+  value_type v_s = subst_node_score(co_subst_, x[i], y[j]);
   return v_s;
 }
 
