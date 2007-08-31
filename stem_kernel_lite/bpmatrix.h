@@ -32,8 +32,6 @@ public:
 public:
   BPMatrix(const std::string& s, const Options& opts);
 
-  BPMatrix(const MASequence<std::string>& ma, const Options& opts);
-
   BPMatrix(const std::list<std::string>& ma, const Options& opts);
 
   double operator()(uint i, uint j) const
