@@ -16,22 +16,19 @@ public:
   typedef typename Data::Node Node;
   typedef typename Data::Edge Edge;
 
-  SimpleNodeScore(value_type gap, value_type stack, value_type covar)
-    : gap_(gap), stack_(stack), covar_(covar)
+  SimpleNodeScore(value_type gap, value_type match, value_type mismatch)
+    : gap_(gap), match_(match), mismatch_(mismatch)
   {
   }
 
   value_type node_score(const Data& xx, const Data& yy,	uint i, uint j) const;
 
-  value_type node_score(const Data& xx, uint i) const
-  {
-    return gap_*gap_;
-  }
+  value_type node_score(const Data& xx, uint i) const;
 
 private:
   value_type gap_;
-  value_type stack_;
-  value_type covar_;
+  value_type match_;
+  value_type mismatch_;
 };
 
 template < class V, class D >
@@ -48,10 +45,7 @@ public:
 
   value_type node_score(const Data& xx, const Data& yy,	uint i, uint j) const;
 
-  value_type node_score(const Data& xx, uint i) const
-  {
-    return gap_*gap_;
-  }
+  value_type node_score(const Data& xx, uint i) const;
 
 private:
   value_type gap_;

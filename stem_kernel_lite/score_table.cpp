@@ -45,7 +45,38 @@ node_score(const Data& xx, const Data& yy,
 {
   const std::vector<Node>& x(xx.tree);
   const std::vector<Node>& y(yy.tree);
-  value_type v_s = x[i].weight()*y[j].weight()*stack_;
+  const std::vector<float>& x_w(xx.weight);
+  const std::vector<float>& y_w(yy.weight);
+  float x_seqs = xx.seq.n_seqs();
+  float y_seqs = yy.seq.n_seqs();
+
+  //value_type v_s = x[i].weight()*y[j].weight();
+  
+  value_type v_c = 0.0;
+  DAG::bp_freq_iterator ix,iy;
+  float x_n = x_seqs;
+  for (ix=x.bp_freq_begin(); ix!=x.bp_freq_end(); ++ix) {
+    rna_t i = ix->first.first;
+    rna_t j = ix->first.second;
+    float cx = ix->second;
+    x_n -= cx;
+
+    float y_n = y_seqs;
+    for (iy=y.bp_freq_begin(); iy!=y.bp_freq_end(); ++iy) {
+      rna_t k = iy->first.first;
+      rna_t l = iy->first.second;
+      float cy = iy->second;
+      y_n -= cy;
+
+      value_type v = (i!=k || j!=l) ? mismatch_ : match_;
+      v_c += v*cx*cy;
+      n += cx*cy;
+    }
+
+    // gap for x
+    
+  }
+
   v_s *= simple_node_score(covar_, x[i], y[j]);
   return v_s;
 }

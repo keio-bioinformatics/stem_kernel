@@ -40,27 +40,8 @@ struct Data
   }
 };
 
-#if 0
-struct LoopFreq
-{
-  std::vector<float> freq_;
-
-  LoopFreq() : freq_(N_RNA, 0) { }
-
-  float operator[](uint i) const { return freq_[i]; }
-  float& operator[](uint i) { return freq_[i]; }
-};
-#endif
-
-#if 0
-typedef Data<std::string> SData;
-typedef Data< MASequence<std::string> > MData;
-#else
-//typedef Data<RNASequence,std::string> SData;
-//typedef Data< MASequence<RNASequence>,MASequence<std::string> > MData;
 typedef Data< ProfileSequence, std::string> SData;
 typedef Data< ProfileSequence, std::list<std::string> > MData;
-#endif
 
 template < class D >
 class DataLoader
