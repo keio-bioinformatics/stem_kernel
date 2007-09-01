@@ -34,19 +34,23 @@ seq_size(const std::list<std::string>& seq)
 
 class Profiler
 {
-  typedef DAG::bp_t bp_t;
 public:
   Profiler(const std::string& seq, const BPMatrix& bpm, float w=1.0)
     : seq_(seq), bpm_(bpm), w_(w), pr_(seq),
       idx_(seq_.size(), static_cast<uint>(-1)),
-      nbp_(seq_.size(), 1.0),
-      have_gaps_(false)
+      nbp_(seq_.size(), 1.0)
   {
     make_idxmap();
     make_non_bp_profile();
   }
 
-  float operator[](uint i) const
+  Profiler(const Profiler& p)
+    : seq_(p.seq_), bpm_(p.bpm_), w_(p.w_), pr_(p.pr_),
+      idx_(p.idx_), nbp_(p.nbp_)
+  {
+  }
+
+  float loop_profile(uint i) const
   {
     assert(idx_[i]!=static_cast<uint>(-1));
     return w_*nbp_[i];
@@ -55,23 +59,24 @@ public:
   uint index(uint i) const { return idx_[i]; }
   float weight() const { return w_; }
 
-  void make_bp_profile(uint i, uint j, std::map<bp_t, float>& v) const
+  void bp_profile(uint i, uint j, std::map<DAG::bp_t, float>& v) const
   {
-    assert(idx_[i]!=static_cast<uint>(-1));
-    assert(idx_[j]!=static_cast<uint>(-1));
-    float p = bpm_.size()!=seq_.size() ?
-      bpm_(idx_[i]+1,idx_[j]+1) : bpm_(i+1,j+1);
+    if (idx_[i]!=static_cast<uint>(-1) &&
+	idx_[j]!=static_cast<uint>(-1)) {
+      float p = bpm_.size()!=seq_.size() ?
+	bpm_(idx_[i]+1,idx_[j]+1) : bpm_(i+1,j+1);
 
-    for (uint a=0; a!=N_RNA; ++a) {
-      if (pr_[i][a]==0.0) continue;
-      for (uint b=0; b!=N_RNA; ++b) {
-	if (pr_[j][b]==0.0) continue;
-	bp_t k = std::make_pair(a,b);
-	std::map<bp_t, float>::iterator x = v.find(k);
-	if (x==v.end()) {
-	  v.insert(std::make_pair(k, w_*p*pr_[i][a]*pr_[j][b]));
-	} else {
-	  x->second += w_*p*pr_[i][a]*pr_[j][b];
+      for (uint a=0; a!=N_RNA; ++a) {
+	if (pr_[i][a]==0.0) continue;
+	for (uint b=0; b!=N_RNA; ++b) {
+	  if (pr_[j][b]==0.0) continue;
+	  DAG::bp_t k = std::make_pair(a,b);
+	  std::map<DAG::bp_t, float>::iterator x = v.find(k);
+	  if (x==v.end()) {
+	    v.insert(std::make_pair(k, w_*p*pr_[i][a]*pr_[j][b]));
+	  } else {
+	    x->second += w_*p*pr_[i][a]*pr_[j][b];
+	  }
 	}
       }
     }
@@ -86,7 +91,6 @@ private:
     for (uint i=0; i!=seq_.size(); ++i) {
       if (seq_[i]!=GAP) idx_[i]=j++;
     }
-    have_gaps_ = idx_.size()!=j;
   }
 
   void make_non_bp_profile()
@@ -127,7 +131,6 @@ private:
   ProfileSequence pr_;
   std::vector<uint> idx_;
   std::vector<float> nbp_;
-  bool have_gaps_;
 };
 
 struct is_child : public std::binary_function<Pos,Pos,bool> {
@@ -198,13 +201,13 @@ private:
 
   void make_loop(std::vector<Node>& tree, const Pos& pos)
   {
-    //const std::list<Pos>& cur = bp_(pos);
     std::list<DAG::bp_freq_t> bp_freq;
-    //make_bp_profile(bp_freq, pos.first, pos.second, maker, pf);
-    Node node(pos, bp_freq, 1);
-    uint ret=build_helper(tree, Pos(pos.first, pos.first));
-    //float e_w = calc_edge_weight(weight, pos);
-    //node[0] = Edge(ret, pos, e_w);
+    float nbp_freq;
+    bp_profile(pos.first, pos.second, bp_freq, nbp_freq);
+    float w =  loop_profile(pos.first) * loop_profile(pos.second);
+    Node node(pos, w, bp_freq, nbp_freq, 1);
+    uint ret = build_helper(tree, Pos(pos.first, pos.first));
+    node[0] = Edge(ret, pos, edge_score(pos));
     tree.push_back(node);
     vt_(pos)=tree.size()-1;
   }
@@ -213,14 +216,15 @@ private:
   {
     const std::list<Pos>& cur = bp_(pos);
     std::list<DAG::bp_freq_t> bp_freq;
-    //make_bp_profile(bp_freq, pos.first, pos.second, maker, pf);
-    Node node(pos, bp_freq, cur.size());
+    float nbp_freq;
+    bp_profile(pos.first, pos.second, bp_freq, nbp_freq);
+    float w = loop_profile(pos.first) * loop_profile(pos.second);
+    Node node(pos, w, bp_freq, nbp_freq, cur.size());
     std::list<Pos>::const_iterator x;
     uint i;
     for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
-      //float e_w = calc_edge_weight(weight, pos, *x);
-      uint ret=build_helper(tree, *x);
-      //node[i] = Edge(ret, pos, *x, e_w);
+      uint ret = build_helper(tree, *x);
+      node[i] = Edge(ret, pos, *x, edge_score(pos, *x));
     }
     tree.push_back(node);
     vt_(pos)=tree.size()-1;
@@ -241,32 +245,64 @@ private:
     return vt_(pos.first, pos.second);
   }
 
-  void make_bp_profile(uint i, uint j, DAG::bp_freq_t& bp_freq) const
+  void bp_profile(uint i, uint j,
+		  std::list<DAG::bp_freq_t>& bp_freq, float& nbp_freq) const
   {
-    float t=0.0;
+    float total_freq=0.0;
+    nbp_freq=0.0;
     std::map<DAG::bp_t, float> v;
     std::list<Profiler>::const_iterator x;
     for (x=prof_.begin(); x!=prof_.end(); ++x) {
       if (x->index(i)!=static_cast<uint>(-1) &&
 	  x->index(j)!=static_cast<uint>(-1)) {
-	x->make_bp_profile(i, j, v);
-	t += x->weight();
+	x->bp_profile(i, j, v);
+	total_freq += x->weight();
+      } else {
+	nbp_freq += x->weight();
+	total_freq += x->weight();
       }
+    }
+    nbp_freq /= total_freq;
+    std::map<DAG::bp_t, float>::const_iterator y;
+    for (y=v.begin(); y!=v.end(); ++y) {
+      bp_freq.push_back(std::make_pair(y->first, y->second/total_freq));
     }
   }
 
-  float make_loop_profile(uint i) const
+  float loop_profile(uint i) const
   {
     float t=0.0;
     float v=0.0;
     std::list<Profiler>::const_iterator x;
     for (x=prof_.begin(); x!=prof_.end(); ++x) {
       if (x->index(i)!=static_cast<uint>(-1)) {
-	v += (*x)[i];
+	v += x->loop_profile(i);
 	t += x->weight();
       }
     }
     return v/t;
+  }
+
+  float
+  edge_score(const Pos& p_pos)
+  {
+    assert(p_pos.first<p_pos.second);
+    float ret = 1.0;
+    for (uint i=p_pos.first+1; i!=p_pos.second; ++i)
+      ret *= loop_profile(i);
+    return ret;
+  }
+
+  float edge_score(const Pos& p_pos, const Pos& c_pos) const
+  {
+    assert(p_pos.first<c_pos.first);
+    assert(c_pos.second<p_pos.second);
+    float ret = 1.0;
+    for (uint i=p_pos.first+1; i!=c_pos.first; ++i)
+      ret *= loop_profile(i);
+    for (uint i=c_pos.second+1; i!=p_pos.second; ++i)
+      ret *= loop_profile(i);
+    return ret;
   }
 
 private:
@@ -285,11 +321,6 @@ static
 void
 find_root(std::vector<uint>& root, const std::vector<Node>& tree);
 
-template <class BPF>
-static
-void
-fill_weight(const BPF& pf, std::vector<float>& weight);
-
 template < class Node >
 static
 void
@@ -299,13 +330,21 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s, const BPMatrix::Options& opts)
-  : tree(), seq(), root(), weight(seq_size(s)), max_pa()
+  : tree(), seq(s), root(), max_pa()
 {
   BPMatrix bp(s, opts);
-  std::list<ProfileSequence> p;
-
-  fill_weight(bp, weight);
-  //make_tree(tree, s, bp, weight, opts.th);
+  std::list<Profiler> prof;
+  typename IS::const_iterator x;
+  if (bp.n_matrices()>1) {
+    BPMatrix::matrix_iterator bp_it = bp.matrix_begin();
+    for (x=s.begin(); x!=s.end(); ++x, ++bp_it)
+      prof.push_back(Profiler(*x, **bp_it, 1.0));
+  } else {
+    for (x=s.begin(); x!=s.end(); ++x)
+      prof.push_back(Profiler(*x, bp, 1.0));
+  }
+  DAGBuilder<N> builder(prof, bp, opts.th);
+  builder.build(tree);
   find_root(root, tree);
   find_max_parent(max_pa, tree);
 }
@@ -313,72 +352,11 @@ Data(const IS& s, const BPMatrix::Options& opts)
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s)
-  : tree(), seq(s), root(), weight(), max_pa()
+  : tree(), seq(s), root(), max_pa()
 {
 }
 
 // helper functions
-#if 0
-static
-void
-make_bp_profile(std::list<DAG::bp_freq_t>& bp_freq, uint i, uint j,
-		const BPProfileMaker& maker, const BPMatrix& bpm)
-{
-  std::map<DAG::bp_t, float> c;
-  BPMatrix::matrix_iterator mtx = bpm.matrix_begin();
-  BPMatrix::idx_map_iterator idx = bpm.idx_map_begin();
-  if (maker.n_seqs() == bpm.n_matrices()) {
-    // weight the bp profile on (i,j) by bp prob for each seq
-    std::vector<float> p(maker.n_seqs(), 0.0);
-    for (uint x=0; x!=maker.n_seqs(); ++x, ++mtx, ++idx) {
-      if ((*idx)[i]!=static_cast<uint>(-1) &&
-	  (*idx)[j]!=static_cast<uint>(-1)) { // not GAP
-	p[x] = (**mtx)((*idx)[i]+1, (*idx)[j]+1);
-      }
-    }
-    maker.make_profile(p, i, j, c);
-  } else {
-    maker.make_profile(bpm(i+1, j+1), i, j, c);
-  }
-
-  std::map<DAG::bp_t, float>::iterator y;
-  for (y=c.begin(); y!=c.end(); ++y) {
-    bp_freq.push_back(*y);
-  }
-}
-
-static
-float
-calc_edge_weight(const std::vector<float>& weight, const Pos& p_pos)
-{
-  assert(p_pos.first<p_pos.second);
-
-  float ret = 1.0;
-  for (uint i=p_pos.first+1; i!=p_pos.second; ++i)
-    ret *= weight[i];
-
-  return ret;
-}
-
-static
-float
-calc_edge_weight(const std::vector<float>& weight,
-		 const Pos& p_pos, const Pos& c_pos)
-{
-  assert(p_pos.first<c_pos.first);
-  assert(c_pos.second<p_pos.second);
-
-  float ret = 1.0;
-  for (uint i=p_pos.first+1; i!=c_pos.first; ++i)
-    ret *= weight[i];
-  for (uint i=c_pos.second+1; i!=p_pos.second; ++i)
-    ret *= weight[i];
-
-  return ret;
-}
-#endif
-
-
 template < class Node >
 static
 void
@@ -400,21 +378,6 @@ find_root(std::vector<uint>& root, const std::vector<Node>& tree)
   uint c=0;
   for (uint i=0; i!=is_root.size(); ++i) {
     if (is_root[i]) root[c++]=i;
-  }
-}
-
-template <class BPF>
-static
-void
-fill_weight(const BPF& pf, std::vector<float>& weight)
-{
-  for (uint i=0; i!=weight.size(); ++i) {
-    weight[i] = 1.0;
-    for (uint j=0; j!=i; ++j)
-      weight[i] -= pf(j+1, i+1);
-    for (uint j=i+1; j!=weight.size(); ++j)
-      weight[i] -= pf(i+1, j+1);
-    if (weight[i]<0.0) weight[i] = 0.0;
   }
 }
 

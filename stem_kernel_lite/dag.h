@@ -74,39 +74,41 @@ namespace DAG {
       
   public:
     Node()
-      : first_(), last_(), edges_(), weight_(), bp_freq_()
+      : first_(), last_(), edges_(), weight_(), bp_freq_(), nbp_freq_()
     {
     }
 
-    Node(uint first, uint last, const std::list<bp_freq_t>& bp_freq,
-	 uint n_edges=0, float weight=1.0)
-      : first_(first), last_(last),
-	edges_(n_edges), weight_(weight), bp_freq_(bp_freq)
+    Node(uint first, uint last, float weight,
+	 const std::list<bp_freq_t>& bp_freq, float nbp_freq, 
+	 uint n_edges=0)
+      : first_(first), last_(last), edges_(n_edges), weight_(weight),
+	bp_freq_(bp_freq), nbp_freq_(nbp_freq)
     {
     }
 
-    Node(const Pos& pos, const std::list<bp_freq_t>& bp_freq,
-	 uint n_edges=0, float weight=1.0)
-      : first_(pos.first), last_(pos.second),
-	edges_(n_edges), weight_(weight), bp_freq_(bp_freq)
+    Node(const Pos& pos, float weight,
+	 const std::list<bp_freq_t>& bp_freq, float nbp_freq, 
+	 uint n_edges=0)
+      : first_(pos.first), last_(pos.second), edges_(n_edges),
+	weight_(weight), bp_freq_(bp_freq), nbp_freq_(nbp_freq)
     {
     }
 
-    Node(uint first, uint last, float weight=1.0)
-      : first_(first), last_(last),
-	edges_(), weight_(weight), bp_freq_()
+    Node(uint first, uint last)
+      : first_(first), last_(last), edges_(0), weight_(1.0),
+	bp_freq_(), nbp_freq_(0.0)
     {
     }
 
-    Node(const Pos& pos, float weight=1.0)
-      : first_(pos.first), last_(pos.second),
-	edges_(), weight_(weight), bp_freq_()
+    Node(const Pos& pos)
+      : first_(pos.first), last_(pos.second), edges_(0), weight_(1.0),
+	bp_freq_(), nbp_freq_(0.0)
     {
     }
 
     Node(const Node& n)
-      : first_(n.first_), last_(n.last_),
-	edges_(n.edges_), weight_(n.weight_), bp_freq_(n.bp_freq_)
+      : first_(n.first_), last_(n.last_), edges_(n.edges_),
+	weight_(n.weight_), bp_freq_(n.bp_freq_), nbp_freq_(n.nbp_freq_)
     {
     }
 
@@ -118,6 +120,7 @@ namespace DAG {
 	edges_ = n.edges_;
 	weight_ = n.weight_;
 	bp_freq_ = n.bp_freq_;
+	nbp_freq_ = n.nbp_freq_;
       }
       return *this;
     }
@@ -138,10 +141,11 @@ namespace DAG {
 
     uint first() const { return first_; }
     uint last() const { return last_; }
-    //float weight() const { return weight_; }
+    float weight() const { return weight_; }
     //const std::list<bp_freq_t>& cnt() const { return bp_freq_; }
     bp_freq_iterator bp_freq_begin() const { return bp_freq_.begin(); }
     bp_freq_iterator bp_freq_end() const { return bp_freq_.end(); }
+    float nbp_freq() const { return nbp_freq_; }
     uint length() const { return last_-first_; }
 
   private:
@@ -150,6 +154,7 @@ namespace DAG {
     std::vector<Edge> edges_;
     float weight_;
     std::list<bp_freq_t> bp_freq_;
+    float nbp_freq_;
   };
 };
 

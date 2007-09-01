@@ -23,7 +23,10 @@ public:
 
   value_type node_score(const Data& xx, const Data& yy,	uint i, uint j) const;
 
-  value_type node_score(const Data& xx, uint i) const;
+  value_type node_score(const Data& xx, uint i) const
+  {
+    return gap_*gap_*xx.tree[i].weight();
+  }
 
 private:
   value_type gap_;
@@ -45,7 +48,10 @@ public:
 
   value_type node_score(const Data& xx, const Data& yy,	uint i, uint j) const;
 
-  value_type node_score(const Data& xx, uint i) const;
+  value_type node_score(const Data& xx, uint i) const
+  {
+    return gap_*gap_*xx.tree[i].weight();
+  }
 
 private:
   value_type gap_;

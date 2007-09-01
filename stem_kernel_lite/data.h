@@ -24,18 +24,16 @@ struct Data
   std::vector<Node> tree;
   Seq seq;
   std::vector<uint> root;
-  std::vector<float> weight;
   std::vector<uint> max_pa;
 
-  Data() : tree(), seq(), root(), weight(), max_pa() { }
+  Data() : tree(), seq(), root(), max_pa() { }
 
   Data(const IS& seq, const BPMatrix::Options& opts);
 
   Data(const IS& seq);
 
   Data(const Data& x)
-    : tree(x.tree), seq(x.seq), root(x.root),
-      weight(x.weight), max_pa(x.max_pa)
+    : tree(x.tree), seq(x.seq), root(x.root), max_pa(x.max_pa)
   {
   }
 };
