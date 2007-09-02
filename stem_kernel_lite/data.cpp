@@ -41,7 +41,7 @@ public:
       nbp_(seq_.size(), 1.0)
   {
     make_idxmap();
-    make_non_bp_profile();
+    non_bp_profile();
   }
 
   Profiler(const Profiler& p)
@@ -93,7 +93,7 @@ private:
     }
   }
 
-  void make_non_bp_profile()
+  void non_bp_profile()
   {
     if (bpm_.size()!=seq_.size()) {
       for (uint i=0; i!=nbp_.size(); ++i) {
@@ -202,12 +202,12 @@ private:
   void make_loop(std::vector<Node>& tree, const Pos& pos)
   {
     std::list<DAG::bp_freq_t> bp_freq;
-    float nbp_freq;
-    bp_profile(pos.first, pos.second, bp_freq, nbp_freq);
-    float w =  loop_profile(pos.first) * loop_profile(pos.second);
-    Node node(pos, w, bp_freq, nbp_freq, 1);
+    bp_profile(pos.first, pos.second, bp_freq);
+    float n_w =  loop_profile(pos.first) * loop_profile(pos.second);
+    Node node(pos, n_w, bp_freq, 1);
     uint ret = build_helper(tree, Pos(pos.first, pos.first));
-    node[0] = Edge(ret, pos, edge_score(pos));
+    float e_w = edge_score(pos);
+    node[0] = Edge(ret, pos, e_w);
     tree.push_back(node);
     vt_(pos)=tree.size()-1;
   }
@@ -216,15 +216,15 @@ private:
   {
     const std::list<Pos>& cur = bp_(pos);
     std::list<DAG::bp_freq_t> bp_freq;
-    float nbp_freq;
-    bp_profile(pos.first, pos.second, bp_freq, nbp_freq);
-    float w = loop_profile(pos.first) * loop_profile(pos.second);
-    Node node(pos, w, bp_freq, nbp_freq, cur.size());
+    bp_profile(pos.first, pos.second, bp_freq);
+    float n_w = loop_profile(pos.first) * loop_profile(pos.second);
+    Node node(pos, n_w, bp_freq, cur.size());
     std::list<Pos>::const_iterator x;
     uint i;
     for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
       uint ret = build_helper(tree, *x);
-      node[i] = Edge(ret, pos, *x, edge_score(pos, *x));
+      float e_w = edge_score(pos, *x);
+      node[i] = Edge(ret, pos, *x, e_w);
     }
     tree.push_back(node);
     vt_(pos)=tree.size()-1;
@@ -245,46 +245,39 @@ private:
     return vt_(pos.first, pos.second);
   }
 
-  void bp_profile(uint i, uint j,
-		  std::list<DAG::bp_freq_t>& bp_freq, float& nbp_freq) const
+  void bp_profile(uint i, uint j, std::list<DAG::bp_freq_t>& bp_freq) const
   {
-    float total_freq=0.0;
-    nbp_freq=0.0;
     std::map<DAG::bp_t, float> v;
     std::list<Profiler>::const_iterator x;
+    float t = 0.0;
     for (x=prof_.begin(); x!=prof_.end(); ++x) {
       if (x->index(i)!=static_cast<uint>(-1) &&
 	  x->index(j)!=static_cast<uint>(-1)) {
 	x->bp_profile(i, j, v);
-	total_freq += x->weight();
-      } else {
-	nbp_freq += x->weight();
-	total_freq += x->weight();
       }
+      t += x->weight();
     }
-    nbp_freq /= total_freq;
     std::map<DAG::bp_t, float>::const_iterator y;
     for (y=v.begin(); y!=v.end(); ++y) {
-      bp_freq.push_back(std::make_pair(y->first, y->second/total_freq));
+      bp_freq.push_back(std::make_pair(y->first, y->second/t));
     }
   }
 
   float loop_profile(uint i) const
   {
-    float t=0.0;
-    float v=0.0;
+    float v = 0.0;
+    float t = 0.0;
     std::list<Profiler>::const_iterator x;
     for (x=prof_.begin(); x!=prof_.end(); ++x) {
       if (x->index(i)!=static_cast<uint>(-1)) {
 	v += x->loop_profile(i);
-	t += x->weight();
       }
+      t += x->weight();
     }
     return v/t;
   }
 
-  float
-  edge_score(const Pos& p_pos)
+  float edge_score(const Pos& p_pos)
   {
     assert(p_pos.first<p_pos.second);
     float ret = 1.0;

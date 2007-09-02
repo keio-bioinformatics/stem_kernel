@@ -16,10 +16,9 @@ public:
   typedef D Data;
 
 public:
-  SiStemKernel(value_type gap, value_type stack, value_type covar,
+  SiStemKernel(value_type gap, value_type match, value_type mismatch,
 	       value_type loop_gap, uint len_band)
-    : st_(gap, stack, covar, loop_gap),
-      k_(st_, len_band)
+    : st_(gap, match, mismatch), k_(st_, len_band)
   {
   }
 
@@ -43,8 +42,7 @@ public:
 public:
   SuStemKernel(value_type gap, value_type beta, value_type loop_gap,
 	       uint len_band)
-    : st_(gap, beta, loop_gap),
-      k_(st_, len_band)
+    : st_(gap, beta), k_(st_, len_band)
   {
   }
 
@@ -66,11 +64,11 @@ public:
   typedef D Data;
 
 public:
-  SiStemStrKernel(value_type gap, value_type stack, value_type covar,
-		  value_type loop_gap, value_type match, value_type mismatch,
-		  uint len_band)
-    : stem_(gap, stack, covar, loop_gap),
-      str_(loop_gap, match, mismatch),
+  SiStemStrKernel(value_type gap, value_type match, value_type mismatch,
+		  value_type str_gap, value_type str_match,
+		  value_type str_mismatch, uint len_band)
+    : stem_(gap, match, mismatch, gap),
+      str_(str_gap, str_match, str_mismatch),
       k_(stem_,str_)
   {
   }

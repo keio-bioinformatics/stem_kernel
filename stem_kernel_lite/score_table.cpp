@@ -10,32 +10,6 @@
 #include "../common/rna.h"
 #include "ribosum.h"
 
-template < class V, class N >
-static
-inline
-V
-simple_node_score(const V& covar, const N& x, const N& y)
-{
-  typedef V value_type;
-  value_type v_c = 0.0;
-  float n=0;
-  DAG::bp_freq_iterator ix,iy;
-  for (ix=x.bp_freq_begin(); ix!=x.bp_freq_end(); ++ix) {
-    rna_t i = ix->first.first;
-    rna_t j = ix->first.second;
-    float cx = ix->second;
-    for (iy=y.bp_freq_begin(); iy!=y.bp_freq_end(); ++iy) {
-      rna_t k = iy->first.first;
-      rna_t l = iy->first.second;
-      float cy = iy->second;
-      value_type v = (i!=k || j!=l) ? covar : 1.0;
-      v_c += v*cx*cy;
-      n += cx*cy;
-    }
-  }
-  return n==0 ? 1.0 : v_c / n;
-}
-
 // node score for MATCH
 template < class V, class D >
 typename SimpleNodeScore<V,D>::value_type
@@ -44,38 +18,38 @@ node_score(const Data& xx, const Data& yy, uint i, uint j) const
 {
   const std::vector<Node>& x(xx.tree);
   const std::vector<Node>& y(yy.tree);
-  float x_seqs = xx.seq.n_seqs();
-  float y_seqs = yy.seq.n_seqs();
 
-  //value_type v_s = x[i].weight()*y[j].weight();
-
-  float n = 0.0;
   value_type v_c = 0.0;
   DAG::bp_freq_iterator ix,iy;
-  float x_n = x_seqs;
   for (ix=x[i].bp_freq_begin(); ix!=x[i].bp_freq_end(); ++ix) {
     rna_t a = ix->first.first;
     rna_t b = ix->first.second;
-    float cx = ix->second;
-    x_n -= cx;
+    value_type cx = ix->second;
 
-    float y_n = y_seqs;
     for (iy=y[j].bp_freq_begin(); iy!=y[j].bp_freq_end(); ++iy) {
       rna_t c = iy->first.first;
       rna_t d = iy->first.second;
-      float cy = iy->second;
-      y_n -= cy;
+      value_type cy = iy->second;
 
       value_type v = (a!=c || b!=d) ? mismatch_ : match_;
       v_c += v*cx*cy;
-      n += cx*cy;
     }
-
-    // gap for x
-    
   }
 
-  return v_c/n;
+  {
+    const Seq& x_seq(xx.seq);
+    const Seq& y_seq(yy.seq);
+
+    value_type nbp_x = x_seq[x[i].first()][RNA_GAP];
+    /*value_type nbp_x = x_seq[x[i].last()][RNA_GAP];*/
+    v_c += node_score(yy, j) * nbp_x / x_seq.n_seqs();
+  
+    value_type nbp_y = y_seq[y[j].first()][RNA_GAP];
+    /*value_type nbp_y = y_seq[y[j].last()][RNA_GAP];*/
+    v_c += node_score(xx, i) * nbp_y / y_seq.n_seqs();
+  }
+
+  return v_c;
 }
 
 // static private
@@ -193,8 +167,37 @@ node_score(const Data& xx, const Data& yy,
 {
   const std::vector<Node>& x(xx.tree);
   const std::vector<Node>& y(yy.tree);
-  value_type v_s = subst_node_score(co_subst_, x[i], y[j]);
-  return v_s;
+
+  value_type v_c = 0.0;
+  DAG::bp_freq_iterator ix,iy;
+  for (ix=x[i].bp_freq_begin(); ix!=x[i].bp_freq_end(); ++ix) {
+    rna_t a = ix->first.first;
+    rna_t b = ix->first.second;
+    value_type cx = ix->second;
+
+    for (iy=y[j].bp_freq_begin(); iy!=y[j].bp_freq_end(); ++iy) {
+      rna_t c = iy->first.first;
+      rna_t d = iy->first.second;
+      value_type cy = iy->second;
+
+      v_c += co_subst_[a][b][c][d]*cx*cy;
+    }
+  }
+
+  {
+    const Seq& x_seq(xx.seq);
+    const Seq& y_seq(yy.seq);
+
+    value_type nbp_x = x_seq[x[i].first()][RNA_GAP];
+    /*value_type nbp_x = x_seq[x[i].last()][RNA_GAP];*/
+    v_c += node_score(yy, j) * nbp_x / x_seq.n_seqs();
+  
+    value_type nbp_y = y_seq[y[j].first()][RNA_GAP];
+    /*value_type nbp_y = y_seq[y[j].last()][RNA_GAP];*/
+    v_c += node_score(xx, i) * nbp_y / y_seq.n_seqs();
+  }
+
+  return v_c;
 }
 
 

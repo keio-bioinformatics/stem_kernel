@@ -47,7 +47,7 @@ initialize(uint sz)
 {
   profile_.resize(sz);
   for (uint i=0; i!=profile_.size(); ++i)
-    profile_[i].resize(N_RNA, 0.0);
+    profile_[i].resize(N_RNA+1, 0.0);
   n_seqs_ = 0;
 }
 
@@ -65,6 +65,8 @@ add_sequence(const std::string& seq, value_type w /*=1.0*/)
       for (uint j=0; j!=N_RNA; ++j) {
 	profile_[i][j] += iupac_weight[r][j]*w;
       }
+    } else {
+      profile_[i][RNA_GAP] += w;
     }
   }
   n_seqs_ += w;
@@ -79,7 +81,7 @@ add_sequence(const ProfileSequence& seq, value_type w /*=1.0*/)
     throw "alignment error";
 
   for (uint i=0; i!=profile_.size(); ++i) {
-    for (uint j=0; j!=N_RNA; ++j) {
+    for (uint j=0; j!=N_RNA+1; ++j) {
       profile_[i][j] += seq[i][j]*w;
     }
   }

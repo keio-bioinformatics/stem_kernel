@@ -146,10 +146,9 @@ public:
   typedef typename Data::Seq Seq;
   typedef typename SimpleEdgeScore<V,D>::WorkArea WorkArea;
 
-  SimpleScoreTable(value_type gap, value_type stack, value_type covar,
-		   value_type loop_gap)
-    : SimpleNodeScore<V,D>(gap, stack, covar),
-      SimpleEdgeScore<V,D>(loop_gap)
+  SimpleScoreTable(value_type gap, value_type match, value_type mismatch)
+    : SimpleNodeScore<V,D>(gap, match, mismatch),
+      SimpleEdgeScore<V,D>(gap)
   {
   }
 };
@@ -166,9 +165,9 @@ public:
   typedef typename Data::Edge Edge;
   typedef typename SimpleEdgeScore<V,D>::WorkArea WorkArea;
 
-  SubstScoreTable(value_type gap, value_type beta, value_type loop_gap)
+  SubstScoreTable(value_type gap, value_type beta)
     : SubstNodeScore<V,D>(gap, beta),
-      SimpleEdgeScore<V,D>(loop_gap)
+      SimpleEdgeScore<V,D>(gap)
   {
   }
 };

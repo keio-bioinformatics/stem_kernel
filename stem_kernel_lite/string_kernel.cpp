@@ -62,26 +62,6 @@ subst_score(const ST& st,
   return n==0 ? 1.0 : v_c / n;
 }
 
-template < class ST, class T >
-static
-inline
-typename ST::element
-subst_score(const ST& st, const Column<T>& x, const Column<T>& y)
-{
-  typedef typename ST::element value_type;
-  value_type v_c = 0.0;
-  float n = 0;
-  for (uint i=0; i!=N_RNA; ++i) {
-    if (x.cnt(i)==0) continue;
-    for (uint j=0; j!=N_RNA; ++j) {
-      if (y.cnt(j)==0) continue;
-      n += x.cnt(i)*y.cnt(j);
-      v_c += st[i][j]*x.cnt(i)*y.cnt(j);
-    }
-  }
-  return n==0 ? 1.0 : v_c / n;
-}
-
 template < class V, class D >
 typename StringKernel<V,D>::value_type
 StringKernel<V,D>::
