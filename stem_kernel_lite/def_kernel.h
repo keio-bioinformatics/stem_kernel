@@ -17,7 +17,7 @@ public:
 
 public:
   SiStemKernel(value_type gap, value_type match, value_type mismatch,
-	       value_type loop_gap, uint len_band)
+	       uint len_band)
     : st_(gap, match, mismatch), k_(st_, len_band)
   {
   }
@@ -40,8 +40,7 @@ public:
   typedef D Data;
 
 public:
-  SuStemKernel(value_type gap, value_type beta, value_type loop_gap,
-	       uint len_band)
+  SuStemKernel(value_type gap, value_type beta, uint len_band)
     : st_(gap, beta), k_(st_, len_band)
   {
   }
@@ -81,7 +80,7 @@ public:
 private:
   SiStemKernel<V,D> stem_;
   StringKernel<V,D> str_;
-  AddKernel<SuStemKernel<V,D>, StringKernel<V,D> > k_;
+  AddKernel<SiStemKernel<V,D>, StringKernel<V,D> > k_;
 };
 
 template <class V, class D>
@@ -94,7 +93,7 @@ public:
 public:
   SuStemStrKernel(value_type alpha, value_type beta,
 		  value_type gap, value_type loop_gap, uint len_band)
-    : stem_(gap, beta, loop_gap, len_band),
+    : stem_(gap, beta, len_band),
       str_(loop_gap, alpha),
       k_(stem_,str_)
   {
@@ -119,9 +118,8 @@ public:
   typedef D Data;
   
  public:
-  LSuStemKernel(value_type gap, value_type beta, value_type loop_gap,
-		uint len_band)
-    : stem_(gap, beta, loop_gap, len_band),
+  LSuStemKernel(value_type gap, value_type beta, uint len_band)
+    : stem_(gap, beta, len_band),
       log_stem_(stem_),
       k_(log_stem_, beta, 0.0)
     {
@@ -174,7 +172,7 @@ public:
 public:
   LSuStemStrKernel(value_type alpha, value_type beta,
 		   value_type gap, value_type loop_gap, uint len_band)
-    : stem_(gap, beta, loop_gap, len_band),
+    : stem_(gap, beta, len_band),
       str_(loop_gap, alpha),
       k_(stem_,str_)
   {

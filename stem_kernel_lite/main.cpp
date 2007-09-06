@@ -108,39 +108,42 @@ main(int argc, char** argv)
 
   bool res = false;
   try {
-    if (!res) {
-      typedef DataLoaderFactory<DataLoader<MData> > LDF;
-      LDF ldf(bp_opts);
-      if (use_string) {
-	if (!use_log) {
-	  SuStemStrKernel<double,MData>
-	    kernel(alpha, beta, gap, loop_gap, len_band);
-	  App<SuStemStrKernel<double,MData>, LDF> app(kernel, ldf, opts);
-	  res = app.execute();
-	} else {
-	  LSuStemStrKernel<double, MData>
-	    kernel(alpha, beta, gap, loop_gap, len_band);
-	  App<LSuStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
-	  res = app.execute();
-	}
-      } else if (use_ribosum) {
-	if (!use_log) {
-	  SuStemKernel<double, MData>
-	    kernel(gap, beta, loop_gap, len_band);
-	  App<SuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
-	  res = app.execute();
-	} else {
-	  LSuStemKernel<double, MData>
-	    kernel(gap, beta, loop_gap, len_band);
-	  App<LSuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
-	  res = app.execute();
-	}
+    typedef DataLoaderFactory<DataLoader<MData> > LDF;
+    LDF ldf(bp_opts);
+    if (use_string && use_ribosum) {
+      if (!use_log) {
+	SuStemStrKernel<double,MData>
+	  kernel(alpha, beta, gap, loop_gap, len_band);
+	App<SuStemStrKernel<double,MData>, LDF> app(kernel, ldf, opts);
+	res = app.execute();
       } else {
-	SiStemKernel<double, MData>
-	  kernel(gap, stack, covar, loop_gap, len_band);
-	App<SiStemKernel<double, MData>,LDF> app(kernel, ldf, opts);
+	LSuStemStrKernel<double, MData>
+	  kernel(alpha, beta, gap, loop_gap, len_band);
+	App<LSuStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	res = app.execute();
       }
+    } else if (!use_string && use_ribosum) {
+      if (!use_log) {
+	SuStemKernel<double, MData>
+	  kernel(gap, beta, len_band);
+	App<SuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      } else {
+	LSuStemKernel<double, MData>
+	  kernel(gap, beta, len_band);
+	App<LSuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      }
+    } else if (use_string && !use_ribosum) {
+      SiStemStrKernel<double,MData>
+	kernel(gap, stack, covar, loop_gap, stack, covar, len_band);
+      App<SiStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
+      res = app.execute();
+    } else /*if (!use_string && !use_ribosum)*/ {
+      SiStemKernel<double, MData>
+	kernel(gap, stack, covar, len_band);
+      App<SiStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
+      res = app.execute();
     }
   } catch (const char* str) {
 #ifdef HAVE_MPI
