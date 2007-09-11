@@ -16,9 +16,9 @@ public:
   typedef D Data;
 
 public:
-  SiStemKernel(value_type gap, value_type match, value_type mismatch,
+  SiStemKernel(value_type loop_gap, value_type stack, value_type covar,
 	       uint len_band)
-    : st_(gap, match, mismatch), k_(st_, len_band)
+    : st_(loop_gap, stack, covar), k_(st_, len_band)
   {
   }
 
@@ -40,8 +40,8 @@ public:
   typedef D Data;
 
 public:
-  SuStemKernel(value_type gap, value_type beta, uint len_band)
-    : st_(gap, beta), k_(st_, len_band)
+  SuStemKernel(value_type loop_gap, value_type beta, uint len_band)
+    : st_(loop_gap, beta), k_(st_, len_band)
   {
   }
 
@@ -63,11 +63,11 @@ public:
   typedef D Data;
 
 public:
-  SiStemStrKernel(value_type gap, value_type match, value_type mismatch,
-		  value_type str_gap, value_type str_match,
-		  value_type str_mismatch, uint len_band)
-    : stem_(gap, match, mismatch, gap),
-      str_(str_gap, str_match, str_mismatch),
+  SiStemStrKernel(value_type loop_gap, value_type stack, value_type covar,
+		  value_type gap, value_type match,
+		  value_type mismatch, uint len_band)
+    : stem_(loop_gap, stack, covar, len_band),
+      str_(gap, match, mismatch),
       k_(stem_,str_)
   {
   }
@@ -92,9 +92,9 @@ public:
 
 public:
   SuStemStrKernel(value_type alpha, value_type beta,
-		  value_type gap, value_type loop_gap, uint len_band)
-    : stem_(gap, beta, len_band),
-      str_(loop_gap, alpha),
+		  value_type loop_gap, value_type gap, uint len_band)
+    : stem_(loop_gap, beta, len_band),
+      str_(gap, alpha),
       k_(stem_,str_)
   {
   }
@@ -118,8 +118,8 @@ public:
   typedef D Data;
   
  public:
-  LSuStemKernel(value_type gap, value_type beta, uint len_band)
-    : stem_(gap, beta, len_band),
+  LSuStemKernel(value_type loop_gap, value_type beta, uint len_band)
+    : stem_(loop_gap, beta, len_band),
       log_stem_(stem_),
       k_(log_stem_, beta, 0.0)
     {
@@ -144,8 +144,8 @@ public:
   typedef D Data;
 
  public:
-  LSuStrKernel(value_type loop_gap, value_type alpha)
-    : str_(loop_gap, alpha),
+  LSuStrKernel(value_type gap, value_type alpha)
+    : str_(gap, alpha),
       log_str_(str_),
       k_(log_str_, alpha, 0.0)
     {
@@ -171,9 +171,9 @@ public:
 
 public:
   LSuStemStrKernel(value_type alpha, value_type beta,
-		   value_type gap, value_type loop_gap, uint len_band)
-    : stem_(gap, beta, len_band),
-      str_(loop_gap, alpha),
+		   value_type loop_gap, value_type gap, uint len_band)
+    : stem_(loop_gap, beta, len_band),
+      str_(gap, alpha),
       k_(stem_,str_)
   {
   }

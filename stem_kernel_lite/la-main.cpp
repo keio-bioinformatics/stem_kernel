@@ -27,8 +27,8 @@ main(int argc, char** argv)
 #endif
 
   Options opts;
-  double alpha;
-  double loop_gap;
+  bool no_ribosum;
+  double alpha, gap, str_match, str_mismatch;
 
   // parse command line options
   po::options_description desc("Options");
@@ -37,11 +37,21 @@ main(int argc, char** argv)
 
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
-    ("no-ribosum", "do not use the RIBOSUM substitution matrix")
-    ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
-     "set the loop weight of the RIBOSUM for the string kernel")
-    ("loop-gap,G", po::value<double>(&loop_gap)->default_value(0.6),
-     "set the gap weight for loop regions");
+    ("no-ribosum",
+     po::value<bool>(&no_ribosum)->zero_tokens()->default_value(false),
+     "do not use the RIBOSUM substitution matrix")
+    ("alpha,a",
+     po::value<double>(&alpha)->default_value(0.2),
+     "weight of the RIBOSUM for the string kernel")
+    ("gap,G",
+     po::value<double>(&gap)->default_value(0.6),
+     "gap weight for the string kernel")
+    ("match",
+     po::value<double>(&str_match)->default_value(1.0),
+     "match weight for the string kernel (with --no-ribosum)")
+    ("mismatch",
+     po::value<double>(&str_mismatch)->default_value(0.8),
+     "substitution (mismatch) weight for the string kernel (with --no-ribosum)");
 
   desc.add(k_desc);
   po::variables_map vm;
@@ -70,12 +80,19 @@ main(int argc, char** argv)
 
   bool res = false;
   try {
-    if (!res) {
+    if (!no_ribosum) {
       typedef DataLoaderFactory<DataLoader<MData> > LDF;
       typedef StringKernel<double,MData> SuStringKernel;
       LDF ldf;
-      SuStringKernel kernel(loop_gap, alpha);
+      SuStringKernel kernel(gap, alpha);
       App<SuStringKernel,LDF> app(kernel, ldf, opts);
+      res = app.execute();
+    } else {
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
+      typedef StringKernel<double,MData> SiStringKernel;
+      LDF ldf;
+      SiStringKernel kernel(gap, str_match, str_mismatch);
+      App<SiStringKernel,LDF> app(kernel, ldf, opts);
       res = app.execute();
     }
   } catch (const char* str) {

@@ -28,16 +28,12 @@ main(int argc, char** argv)
 
   Options opts;
   BPMatrix::Options bp_opts;
-  double gap;
-  double stack;
-  double covar;
-  double alpha;
-  double beta;
-  double loop_gap;
-  bool use_string=false;
-  bool use_ribosum=false;
-  bool use_log=false;
+  bool no_string;
+  bool no_ribosum;
+  bool use_log;
+  double beta, loop_gap, stack, covar;
   uint len_band=0;
+  double alpha, gap, str_match, str_mismatch;
 
   // parse command line options
   po::options_description desc("Options");
@@ -49,36 +45,50 @@ main(int argc, char** argv)
 
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
-    ("gap,g",
-     po::value<double>(&gap)->default_value(0.5),
-     "set the gap weight")
-    ("stack,s",
-     po::value<double>(&stack)->default_value(1.3),
-     "set the weight for stacking base pairs")
-    ("covariant,v",
-     po::value<double>(&covar)->default_value(0.8),
-     "set substitution (covariant) weight for base pairs")
-    ("length-band",
-     po::value<uint>(&len_band)->default_value(0),
-     "set the band of difference of the length between bases")
-    ("no-ribosum", "do not use the RIBOSUM substitution matrix")
+    ("no-ribosum",
+     po::value<bool>(&no_ribosum)->zero_tokens()->default_value(false),
+     "do not use the RIBOSUM substitution matrix")
     ("no-string",
-     "do not convolute the string kernel with base pair probabilities")
-    ("alpha,a",
-     po::value<double>(&alpha)->default_value(0.2),
-     "set the loop weight of the RIBOSUM for the string kernel")
-    ("beta,b",
-     po::value<double>(&beta)->default_value(0.3),
-     "set the base pair weight of the RIBOSUM for the stem kernel")
-    ("loop-gap,G",
-     po::value<double>(&loop_gap)->default_value(0.6),
-     "set the gap weight for loop regions")
+     po::value<bool>(&no_string)->zero_tokens()->default_value(false),
+     "do not convolute the string kernel")
     ("log",
      po::value<bool>(&use_log)->zero_tokens()->default_value(false),
-     "use the logarithm of the kernel")
-    ;
+     "use the logarithm of the kernel");
+  
+  po::options_description stem_desc("Options for the stem kernel");
+  stem_desc.add_options()
+    ("beta,b",
+     po::value<double>(&beta)->default_value(0.3),
+     "weight of the RIBOSUM for the stem kernel")
+    ("loop-gap,g",
+     po::value<double>(&loop_gap)->default_value(0.5),
+     "gap weight for loop regions")
+    ("stack,s",
+     po::value<double>(&stack)->default_value(1.3),
+     "match weight for stacking base pairs (with --no-ribosum)")
+    ("covariant,v",
+     po::value<double>(&covar)->default_value(0.8),
+     "substitution (covariant) weight for base pairs (with --no-ribosum)")
+    ("length-band",
+     po::value<uint>(&len_band)->default_value(0),
+     "the band of difference of the length between bases");
 
-  desc.add(k_desc).add(f_desc);
+  po::options_description str_desc("Options for the string kernel");
+  str_desc.add_options()
+    ("alpha,a",
+     po::value<double>(&alpha)->default_value(0.2),
+     "weight of the RIBOSUM for the string kernel")
+    ("gap,G",
+     po::value<double>(&gap)->default_value(0.6),
+     "gap weight for the string kernel")
+    ("match",
+     po::value<double>(&str_match)->default_value(1.0),
+     "match weight for the string kernel (with --no-ribosum)")
+    ("mismatch",
+     po::value<double>(&str_mismatch)->default_value(0.8),
+     "substitution (mismatch) weight for the string kernel (with --no-ribosum)");
+
+  desc.add(k_desc).add(stem_desc).add(str_desc).add(f_desc);
   po::variables_map vm;
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).
@@ -101,47 +111,44 @@ main(int argc, char** argv)
     return 1;
   }
 
-  use_string = !vm.count("no-string");
-  use_ribosum = !vm.count("no-ribosum");
-
   opts.parse_extra_args(extra_args);
 
   bool res = false;
   try {
     typedef DataLoaderFactory<DataLoader<MData> > LDF;
     LDF ldf(bp_opts);
-    if (use_string && use_ribosum) {
+    if (!no_string && !no_ribosum) {
       if (!use_log) {
-	SuStemStrKernel<double,MData>
-	  kernel(alpha, beta, gap, loop_gap, len_band);
+	SuStemStrKernel<double, MData>
+	  kernel(alpha, beta, loop_gap, gap, len_band);
 	App<SuStemStrKernel<double,MData>, LDF> app(kernel, ldf, opts);
 	res = app.execute();
       } else {
 	LSuStemStrKernel<double, MData>
-	  kernel(alpha, beta, gap, loop_gap, len_band);
+	  kernel(alpha, beta, loop_gap, gap, len_band);
 	App<LSuStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	res = app.execute();
       }
-    } else if (!use_string && use_ribosum) {
+    } else if (no_string && !no_ribosum) {
       if (!use_log) {
 	SuStemKernel<double, MData>
-	  kernel(gap, beta, len_band);
+	  kernel(loop_gap, beta, len_band);
 	App<SuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	res = app.execute();
       } else {
 	LSuStemKernel<double, MData>
-	  kernel(gap, beta, len_band);
+	  kernel(loop_gap, beta, len_band);
 	App<LSuStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
 	res = app.execute();
       }
-    } else if (use_string && !use_ribosum) {
+    } else if (!no_string && no_ribosum) {
       SiStemStrKernel<double,MData>
-	kernel(gap, stack, covar, loop_gap, stack, covar, len_band);
+	kernel(loop_gap, stack, covar, gap, str_match, str_mismatch, len_band);
       App<SiStemStrKernel<double, MData>, LDF> app(kernel, ldf, opts);
       res = app.execute();
-    } else /*if (!use_string && !use_ribosum)*/ {
+    } else /*if (no_string && no_ribosum)*/ {
       SiStemKernel<double, MData>
-	kernel(gap, stack, covar, len_band);
+	kernel(loop_gap, stack, covar, len_band);
       App<SiStemKernel<double, MData>, LDF> app(kernel, ldf, opts);
       res = app.execute();
     }
