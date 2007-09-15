@@ -11,10 +11,19 @@
 #include <glob.h>
 #include <boost/program_options.hpp>
 #include <boost/timer.hpp>
+#ifdef HAVE_BOOST_IOSTREAMS
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
+#endif
 #include "../common/kernel_matrix.h"
 #include "../libsvm/svm_util.h"
 #ifdef HAVE_MPI
 #include <mpi.h>
+#endif
+
+#ifdef HAVE_BOOST_IOSTREAMS
+namespace io = boost::iostreams;
 #endif
 
 class Glob
@@ -137,7 +146,23 @@ private:
 	std::cout << "elapsed time: " << elapsed << "s" << std::endl;
 	std::ofstream out(opts_.output.c_str());
 	if (!out) throw opts_.output.c_str();
+#ifdef HAVE_BOOST_IOSTREAMS
+	if (opts_.output.rfind(".gz")+3==opts_.output.size()) {
+	  io::filtering_stream<io::output> fout;
+	  fout.push(io::gzip_compressor());
+	  fout.push(out);
+	  matrix.print(fout);
+	} else if (opts_.output.rfind(".bz2")+4==opts_.output.size()) {
+	  io::filtering_stream<io::output> fout;
+	  fout.push(io::bzip2_compressor());
+	  fout.push(out);
+	  matrix.print(fout);
+	} else {
+	  matrix.print(out);
+	}
+#else
 	matrix.print(out);
+#endif
       } catch (const char* f) {
 #ifdef HAVE_MPI
 	MPI::COMM_WORLD.Abort(1);
