@@ -147,19 +147,13 @@ private:
 	std::ofstream out(opts_.output.c_str());
 	if (!out) throw opts_.output.c_str();
 #ifdef HAVE_BOOST_IOSTREAMS
-	if (opts_.output.rfind(".gz")+3==opts_.output.size()) {
-	  io::filtering_stream<io::output> fout;
+	io::filtering_stream<io::output> fout;
+	if (opts_.output.rfind(".gz")+3==opts_.output.size())
 	  fout.push(io::gzip_compressor());
-	  fout.push(out);
-	  matrix.print(fout);
-	} else if (opts_.output.rfind(".bz2")+4==opts_.output.size()) {
-	  io::filtering_stream<io::output> fout;
+	else if (opts_.output.rfind(".bz2")+4==opts_.output.size())
 	  fout.push(io::bzip2_compressor());
-	  fout.push(out);
-	  matrix.print(fout);
-	} else {
-	  matrix.print(out);
-	}
+	fout.push(out);
+	matrix.print(fout);
 #else
 	matrix.print(out);
 #endif
