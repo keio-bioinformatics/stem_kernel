@@ -206,7 +206,7 @@ private:
     float n_w =  loop_profile(pos.first) * loop_profile(pos.second);
     Node node(pos, n_w, bp_freq, 1);
     uint ret = build_helper(tree, Pos(pos.first, pos.first));
-    float e_w = edge_score(pos);
+    float e_w = 1.0; //edge_score(pos);
     node[0] = Edge(ret, pos, e_w);
     tree.push_back(node);
     vt_(pos)=tree.size()-1;
@@ -223,7 +223,7 @@ private:
     uint i;
     for (x=cur.begin(), i=0; x!=cur.end(); ++x, ++i) {
       uint ret = build_helper(tree, *x);
-      float e_w = edge_score(pos, *x);
+      float e_w = 1.0; //edge_score(pos, *x);
       node[i] = Edge(ret, pos, *x, e_w);
     }
     tree.push_back(node);

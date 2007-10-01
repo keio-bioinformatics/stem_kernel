@@ -61,7 +61,7 @@ main(int argc, char** argv)
      po::value<double>(&beta)->default_value(0.3),
      "weight of the RIBOSUM for the stem kernel")
     ("loop-gap,g",
-     po::value<double>(&loop_gap)->default_value(0.5),
+     po::value<double>(&loop_gap)->default_value(0.2),
      "gap weight for loop regions")
     ("stack,s",
      po::value<double>(&stack)->default_value(1.3),
@@ -70,7 +70,7 @@ main(int argc, char** argv)
      po::value<double>(&covar)->default_value(0.8),
      "substitution (covariant) weight for base pairs (with --no-ribosum)")
     ("length-band",
-     po::value<uint>(&len_band)->default_value(0),
+     po::value<uint>(&len_band)->default_value(10),
      "the band of difference of the length between bases");
 
   po::options_description str_desc("Options for the string kernel");
@@ -79,7 +79,7 @@ main(int argc, char** argv)
      po::value<double>(&alpha)->default_value(0.2),
      "weight of the RIBOSUM for the string kernel")
     ("gap,G",
-     po::value<double>(&gap)->default_value(0.6),
+     po::value<double>(&gap)->default_value(0.8),
      "gap weight for the string kernel")
     ("match",
      po::value<double>(&str_match)->default_value(1.0),
