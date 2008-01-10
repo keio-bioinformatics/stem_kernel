@@ -25,15 +25,17 @@ struct Data
   Seq seq;
   std::vector<uint> root;
   std::vector<uint> max_pa;
+  std::vector<float> weight;
 
-  Data() : tree(), seq(), root(), max_pa() { }
+  Data() : tree(), seq(), root(), max_pa(), weight() { }
 
   Data(const IS& seq, const BPMatrix::Options& opts);
 
   Data(const IS& seq);
 
   Data(const Data& x)
-    : tree(x.tree), seq(x.seq), root(x.root), max_pa(x.max_pa)
+    : tree(x.tree), seq(x.seq), root(x.root),
+      max_pa(x.max_pa), weight(x.weight)
   {
   }
 };

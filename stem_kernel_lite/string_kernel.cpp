@@ -72,11 +72,9 @@ operator()(const Data& xx, const Data& yy) const
 
   const Seq& x(xx.seq);
   const Seq& y(yy.seq);
-#if 0
   const std::vector<float>& w_x(xx.weight);
   const std::vector<float>& w_y(yy.weight);
   bool use_weight = !w_x.empty() && !w_y.empty();
-#endif
   uint sz_x = x.size();
   uint sz_y = y.size();
   dp_type K0(boost::extents[sz_x+1][sz_y+1]);
@@ -94,7 +92,6 @@ operator()(const Data& xx, const Data& yy) const
     G0[0][j] = G0[0][j-1]*gap_;
   }
 
-#if 0
   if (use_weight) {
     for (uint i=1; i!=sz_x+1; ++i) {
       K1[0] = G1[0] = 0.0;
@@ -108,7 +105,6 @@ operator()(const Data& xx, const Data& yy) const
       }
     }
   } else {
-#endif
     for (uint i=1; i!=sz_x+1; ++i) {
       K1[0] = G1[0] = 0.0;
       for (uint j=1; j!=sz_y+1; ++j) {
@@ -120,9 +116,7 @@ operator()(const Data& xx, const Data& yy) const
 	G0[i][j] = G1[j] + G0[i-1][j]*gap_;
       }
     }
-#if 0
   }
-#endif
 
   return K0[sz_x][sz_y];
 }

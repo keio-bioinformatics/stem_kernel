@@ -27,6 +27,7 @@ main(int argc, char** argv)
 #endif
 
   Options opts;
+  BPMatrix::Options bp_opts;
   bool no_ribosum;
   double alpha, gap, str_match, str_mismatch;
 
@@ -35,11 +36,16 @@ main(int argc, char** argv)
   desc.add_options()("help,h", "show this message");
   opts.add_options(desc);
 
+  po::options_description f_desc("Folding Options");
+  bp_opts.add_options(f_desc);
+
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
     ("no-ribosum",
      po::value<bool>(&no_ribosum)->zero_tokens()->default_value(false),
      "do not use the RIBOSUM substitution matrix")
+    ("use-bp",
+     "use base-paring probability weight")
     ("alpha,a",
      po::value<double>(&alpha)->default_value(0.2),
      "weight of the RIBOSUM for the string kernel")
@@ -53,7 +59,7 @@ main(int argc, char** argv)
      po::value<double>(&str_mismatch)->default_value(0.8),
      "substitution (mismatch) weight for the string kernel (with --no-ribosum)");
 
-  desc.add(k_desc);
+  desc.add(k_desc).add(f_desc);
   po::variables_map vm;
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).
@@ -80,20 +86,38 @@ main(int argc, char** argv)
 
   bool res = false;
   try {
-    if (!no_ribosum) {
-      typedef DataLoaderFactory<DataLoader<MData> > LDF;
-      typedef StringKernel<double,MData> SuStringKernel;
-      LDF ldf;
-      SuStringKernel kernel(gap, alpha);
-      App<SuStringKernel,LDF> app(kernel, ldf, opts);
-      res = app.execute();
+    if (!vm.count("use-bp")) {
+      if (!no_ribosum) {
+	typedef DataLoaderFactory<DataLoader<MData> > LDF;
+	typedef StringKernel<double,MData> SuStringKernel;
+	LDF ldf;
+	SuStringKernel kernel(gap, alpha);
+	App<SuStringKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      } else {
+	typedef DataLoaderFactory<DataLoader<MData> > LDF;
+	typedef StringKernel<double,MData> SiStringKernel;
+	LDF ldf;
+	SiStringKernel kernel(gap, str_match, str_mismatch);
+	App<SiStringKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      }
     } else {
-      typedef DataLoaderFactory<DataLoader<MData> > LDF;
-      typedef StringKernel<double,MData> SiStringKernel;
-      LDF ldf;
-      SiStringKernel kernel(gap, str_match, str_mismatch);
-      App<SiStringKernel,LDF> app(kernel, ldf, opts);
-      res = app.execute();
+      if (!no_ribosum) {
+	typedef DataLoaderFactory<DataLoader<MData> > LDF;
+	typedef StringKernel<double,MData> SuStringKernel;
+	LDF ldf(bp_opts);
+	SuStringKernel kernel(gap, alpha);
+	App<SuStringKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      } else {
+	typedef DataLoaderFactory<DataLoader<MData> > LDF;
+	typedef StringKernel<double,MData> SiStringKernel;
+	LDF ldf(bp_opts);
+	SiStringKernel kernel(gap, str_match, str_mismatch);
+	App<SiStringKernel,LDF> app(kernel, ldf, opts);
+	res = app.execute();
+      }
     }
   } catch (const char* str) {
 #ifdef HAVE_MPI

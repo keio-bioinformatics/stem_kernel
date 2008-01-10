@@ -319,11 +319,14 @@ static
 void
 find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x);
 
+static
+void
+fill_weight(std::vector<float>& w, const std::list<Profiler>& prof);
 
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s, const BPMatrix::Options& opts)
-  : tree(), seq(s), root(), max_pa()
+  : tree(), seq(s), root(), max_pa(), weight(s.begin()->size())
 {
   BPMatrix bp(s, opts);
   std::list<Profiler> prof;
@@ -340,12 +343,13 @@ Data(const IS& s, const BPMatrix::Options& opts)
   builder.build(tree);
   find_root(root, tree);
   find_max_parent(max_pa, tree);
+  fill_weight(weight, prof);
 }
  
 template < class S, class IS, class N >
 Data<S,IS,N>::
 Data(const IS& s)
-  : tree(), seq(s), root(), max_pa()
+  : tree(), seq(s), root(), max_pa(), weight()
 {
 }
 
@@ -388,6 +392,24 @@ find_max_parent(std::vector<uint>& max_pa, const std::vector<Node>& x)
 	max_pa[ix->to()] = i;
       }
     }
+  }
+}
+
+static
+void
+fill_weight(std::vector<float>& w, const std::list<Profiler>& prof)
+{
+  for (uint i=0; i!=w.size(); ++i) {
+    float v = 0.0;
+    float t = 0.0;
+    std::list<Profiler>::const_iterator x;
+    for (x=prof.begin(); x!=prof.end(); ++x) {
+      if (x->index(i)!=static_cast<uint>(-1)) {
+	v += x->loop_profile(i);
+      }
+      t += x->weight();
+    }
+    w[i] = v/t;
   }
 }
 
@@ -504,7 +526,14 @@ get()
   default:
     break;
   }
+
   if (ret) {
+    std::list<std::string>::const_iterator x;
+    uint l=ma.begin()->size();
+    for (x=ma.begin(); x!=ma.end(); ++x) {
+      if (l!=x->size()) throw "wrong alignment";
+    }
+  
     if (use_bp_)
       return new MData(ma, bp_opts_);
     else
