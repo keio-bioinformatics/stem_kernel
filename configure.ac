@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(stem_kernel, 0.1, no-define)
+AC_INIT(stem_kernel, 0.2, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([stem_kernel/main.cpp])
@@ -14,6 +14,19 @@ AC_LANG(C++)
 AC_CXX_HAVE_STL
 AC_PROG_RANLIB
 
+AC_ARG_ENABLE([ref-impl],
+  AS_HELP_STRING([--enable-ref-impl],
+    [build naive reference implimentation of stem kernels]))
+
+AC_ARG_ENABLE([string-kernel],
+  AS_HELP_STRING([--enable-string-kernel],
+    [build naive string kernel kernels]))
+
+AC_ARG_ENABLE([simpal],
+  AS_HELP_STRING([--enable-simpal],
+    [build simple palindrom kernels]))
+
+	    	   
 # Checks for libraries.
 
 AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
@@ -26,13 +39,17 @@ AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
 				    
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
-  BOOST_LIBS="$BOOST_LIBS -l$BOOST_PROGRAM_OPTIONS_LIB"
+  BOOST_LIBS="$BOOST_LIBS $BOOST_PROGRAM_OPTIONS_LIB"
 else
   AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
 fi
 AX_BOOST_THREAD
 if test "x$BOOST_THREAD_LIB" != "x"; then
-  BOOST_LIBS="$BOOST_LIBS -l$BOOST_THREAD_LIB"
+  BOOST_LIBS="$BOOST_LIBS $BOOST_THREAD_LIB"
+fi
+AX_BOOST_IOSTREAMS
+if test "x$BOOST_IOSTREAMS_LIB" != "x"; then
+  BOOST_LIBS="$BOOST_LIBS $BOOST_IOSTREAMS_LIB"
 fi
 AC_SUBST(BOOST_LIBS)
 
@@ -50,6 +67,10 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_CHECK_FUNCS([pow sqrt])
-#ACX_LAPACK
-AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile rla_kernel/Makefile])
+
+AM_CONDITIONAL([OPT_REF_IMPL], [test "$enable_ref_impl" = yes])
+AM_CONDITIONAL([OPT_STRING_KERNEL], [test "$enable_string_kernel" = yes])
+AM_CONDITIONAL([OPT_SIMPAL], [test "$enable_simpal" = yes])
+
+AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile])
 AC_OUTPUT
