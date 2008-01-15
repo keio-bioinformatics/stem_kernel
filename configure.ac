@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(stem_kernel, 0.2, no-define)
+AC_INIT(stem_kernel, 216, no-define)
 AM_INIT_AUTOMAKE([-Wall foreign])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([stem_kernel/main.cpp])
@@ -72,5 +72,5 @@ AM_CONDITIONAL([OPT_REF_IMPL], [test "$enable_ref_impl" = yes])
 AM_CONDITIONAL([OPT_STRING_KERNEL], [test "$enable_string_kernel" = yes])
 AM_CONDITIONAL([OPT_SIMPAL], [test "$enable_simpal" = yes])
 
-AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile])
+AC_CONFIG_FILES([Makefile common/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile])
 AC_OUTPUT

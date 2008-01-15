@@ -7,5 +7,4 @@ endif
 if OPT_SIMPAL
   SIMPAL = simpal
 endif
-SUBDIRS =  common libsvm \
-	$(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite
+SUBDIRS =  common $(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite

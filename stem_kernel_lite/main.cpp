@@ -15,6 +15,11 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
+#ifdef HAVE_BOOST_IOSTREAMS
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
+#endif
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -30,10 +35,13 @@
 #include "model.h"
 #include "bpmatrix.h"
 #include "../common/rna.h"
-#include "../libsvm/svm_util.h"
+//#include "../libsvm/svm_util.h"
 
 using namespace boost::lambda;
 namespace po = boost::program_options;
+#ifdef HAVE_BOOST_IOSTREAMS
+namespace io = boost::iostreams;
+#endif
 
 // options
 static double gap;
@@ -70,7 +78,17 @@ do_train(const std::string& output_file,
     try {
       std::ofstream out(output_file.c_str());
       if (!out) throw output_file.c_str();
+#ifdef HAVE_BOOST_IOSTREAMS
+      io::filtering_stream<io::output> fout;
+      if (output_file.rfind(".gz")+3==output_file.size())
+	fout.push(io::gzip_compressor());
+      else if (output_file.rfind(".bz2")+4==output_file.size())
+	fout.push(io::bzip2_compressor());
+      fout.push(out);
+      matrix.print(fout);
+#else
       matrix.print(out);
+#endif
       if (!test_norm_output.empty()) {
 	std::ofstream tout(test_norm_output.c_str());
 	if (!tout) throw test_norm_output.c_str();
@@ -114,11 +132,13 @@ do_predict(const std::string& output_file,
   else
     predict_only=false;
 
+#if 0
   std::vector<SVMPredict*> pout; 
+  std::vector<svm_node> x;
+#endif
   std::ofstream out, tout;
   std::vector<value_type> diag;
   std::vector<value_type> vec;
-  std::vector<svm_node> x;
   
 #ifdef HAVE_MPI
   if (rank==0) {
@@ -144,7 +164,7 @@ do_predict(const std::string& output_file,
 	return false;
       }
     }
-
+#if 0
     if (do_svm_predict) {
       x.resize(train.size()+2);
       pout.resize(predict_output.size(), NULL);
@@ -167,6 +187,7 @@ do_predict(const std::string& output_file,
 	return false;
       }
     }
+#endif
 #ifdef HAVE_MPI
   }
 #endif
@@ -219,12 +240,14 @@ do_predict(const std::string& output_file,
 	    out << std::endl;
 	    if (!test_norm_output.empty()) tout << self << std::endl;
 	  }
+#if 0
 	  if (do_svm_predict) {
 	    SVMPredict::make_svm_node(cnt, vec, x);
 	    for (uint k=0; k!=predict_output.size(); ++k) {
 	      pout[k]->do_svm_predict(target, x);
 	    }
 	  }
+#endif
 #ifdef HAVE_MPI
 	}
 #endif
@@ -238,9 +261,11 @@ do_predict(const std::string& output_file,
 #ifdef HAVE_MPI
     if (rank==0) {
 #endif
+#if 0
       for (uint k=0; k!=predict_output.size(); ++k) {
 	delete pout[k];
       }
+#endif
 #ifdef HAVE_MPI
     }
 #endif
@@ -425,8 +450,15 @@ main(int argc, char** argv)
     ("help,h", "show this message")
     ("basepair,p", po::value<double>(&th)->default_value(0.01),
      "set the threshold of basepairing probability")
-    ("gap,g", po::value<double>(&gap)->default_value(0.5),
+    ("beta,b", po::value<double>(&beta)->default_value(0.1),
+     "set the base pair weight of the RIBOSUM for the stem kernel")
+    ("gap,g", po::value<double>(&gap)->default_value(0.4),
      "set the gap weight")
+    ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
+     "set the loop weight of the RIBOSUM for the string kernel")
+    ("loop-gap,G", po::value<double>(&loop_gap)->default_value(0.8),
+     "set the gap weight for loop regions")
+#if 0
     ("stack,s", po::value<double>(&stack)->default_value(1.3),
      "set the weight for stacking base pairs")
     ("covariant,v", po::value<double>(&covar)->default_value(0.8),
@@ -436,18 +468,13 @@ main(int argc, char** argv)
      "set the window size for folding RNAs")
     ("pair-width", po::value<uint>(&pair_sz)->default_value(0),
      "set the pair width for pairing bases")
+#endif
     ("length-band", po::value<uint>(&len_band)->default_value(0),
      "set the band of difference of the length between bases")
-    ("no-ribosum", "do not use the RIBOSUM substitution matrix")
-    ("no-string", "do not convolute the string kernel with base pair probabilities")
+    //("no-ribosum", "do not use the RIBOSUM substitution matrix")
+    ("no-string", "do not convolute the la kernel with base pair probabilities")
     //("string-only", "use only the string kernel with base pair probabilities")
     ("la-kernel", "run as local alignment kernel")
-    ("alpha,a", po::value<double>(&alpha)->default_value(0.2),
-     "set the loop weight of the RIBOSUM for the string kernel")
-    ("beta,b", po::value<double>(&beta)->default_value(0.3),
-     "set the base pair weight of the RIBOSUM for the stem kernel")
-    ("loop-gap,G", po::value<double>(&loop_gap)->default_value(0.6),
-     "set the gap weight for loop regions")
 #if !defined (HAVE_MPI) && defined (HAVE_BOOST_THREAD)
     ("threads,t", po::value<uint>(&n_th)->default_value(1),
      "set the number of threads")
@@ -455,12 +482,15 @@ main(int argc, char** argv)
     ("normalize,n", "normalize the kernel matrix")
     ("norm,x", po::value<std::string>(&test_norm_output),
      "set the filename for norms of test examples")
+#if 0
     ("no-matrix", "do not output matrix")
     ("model", po::value< std::vector<std::string> >(&trained_model_file),
      "the model file trained by svm-train if you already have")
     ("predict", po::value< std::vector<std::string> >(&predict_output),
      "output file name of prediction results")
-    ("skip", po::value<uint>(&skip), "skip lines");
+    ("skip", po::value<uint>(&skip), "skip lines")
+#endif
+    ;
   po::variables_map vm;
   po::parsed_options parsed =
     po::command_line_parser(argc, argv).
