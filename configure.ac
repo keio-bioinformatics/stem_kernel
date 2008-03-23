@@ -72,5 +72,5 @@ AM_CONDITIONAL([OPT_REF_IMPL], [test "$enable_ref_impl" = yes])
 AM_CONDITIONAL([OPT_STRING_KERNEL], [test "$enable_string_kernel" = yes])
 AM_CONDITIONAL([OPT_SIMPAL], [test "$enable_simpal" = yes])
 
-AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile rla_kernel/Makefile])
+AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile bpla_kernel/Makefile])
 AC_OUTPUT

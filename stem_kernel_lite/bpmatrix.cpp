@@ -154,6 +154,8 @@ make_bp_matrix(BPMatrix& bp, const std::string &x,
 	    st.pop();
 	  }
 	}
+	//std::cout << str << std:endl;
+	
 	free(str);
       }
 

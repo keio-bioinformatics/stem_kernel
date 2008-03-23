@@ -8,4 +8,4 @@ if OPT_SIMPAL
   SIMPAL = simpal
 endif
 SUBDIRS =  common libsvm \
-	$(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite rla_kernel
+	$(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite bpla_kernel
