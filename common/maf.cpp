@@ -55,10 +55,14 @@ template < class Seq >
 bool
 load_maf(MASequence<Seq>& ma, file_iterator<>& fi)
 {
+  file_iterator<> s = fi;
   std::list<std::string> seqs;
   maf_parser parser(seqs);
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
-  if (!info.hit) return false;
+  if (!info.hit) {
+    fi = s;
+    return false;
+  }
   fi = info.stop;
 
   MASequence<Seq> m;
@@ -75,10 +79,14 @@ template < class Seq >
 bool
 load_maf(std::list<Seq>& ma, file_iterator<>& fi)
 {
+  file_iterator<> s = fi;
   std::list<std::string> seqs;
   maf_parser parser(seqs);
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
-  if (!info.hit) return false;
+  if (!info.hit) {
+    fi = s;
+    return false;
+  }
   fi = info.stop;
 
   MASequence<Seq> m;

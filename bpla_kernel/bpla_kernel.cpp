@@ -48,35 +48,55 @@ double SIMPLE[5][5]={
   {0,0,0,0,0} //N
 };
 
-
 template < class ValueType, class Data >
-static
-ValueType
-score(const Data& x, const Data& y, uint i, uint j, ValueType alpha) 
+struct LAScore
 {
-  ValueType v = 0.0;
-  float n = 0;
-  for (uint k=0; k!=N_RNA; ++k) {
-    if (x.seq[i][k]==0) continue;
-    for (uint l=0; l!=N_RNA; ++l) {
-      if (y.seq[j][l]==0) continue;
-      n += x.seq[i][k]*y.seq[j][l];
-      v += RIBOSUM2[k][l]*x.seq[i][k]*y.seq[j][l];
+  LAScore() { }
+
+  inline
+  ValueType
+  operator()(const Data& x, const Data& y, uint i, uint j) const
+  {
+    ValueType v = 0.0;
+    float n = 0;
+    for (uint k=0; k!=N_RNA; ++k) {
+      if (x.seq[i][k]==0) continue;
+      for (uint l=0; l!=N_RNA; ++l) {
+	if (y.seq[j][l]==0) continue;
+	n += x.seq[i][k]*y.seq[j][l];
+	v += RIBOSUM2[k][l]*x.seq[i][k]*y.seq[j][l];
+      }
     }
+    return n==0 ? 0.0 : v/n;
   }
-  v = n==0 ? 0.0 : v/n;
-  
-  return alpha * (sqrt(x.p_right[i] * y.p_right[j] )+ sqrt(x.p_left[i] * y.p_left[j]))
-    + sqrt(x.p_unpair[i] * y.p_unpair[j]) * v;
-}
-
+};
 
 template < class ValueType, class Data >
-ValueType
-BPLAKernel<ValueType,Data>::
-operator()(const Data& x, const Data& y) const
+struct BPLAScore : public LAScore<ValueType,Data>
 {
-  typedef boost::multi_array<value_type,2> dp_type;
+  BPLAScore(ValueType alpha) : LAScore<ValueType,Data>(), alpha_(alpha) { }
+
+  inline
+  ValueType
+  operator()(const Data& x, const Data& y, uint i, uint j) const
+  {
+    return alpha_ * (x.p_right[i]*y.p_right[j] + x.p_left[i] * y.p_left[j])
+      + x.p_unpair[i]*y.p_unpair[j] * LAScore<ValueType,Data>::operator()(x,y,i,j);
+  }
+
+  ValueType alpha_;
+};
+
+template < class Data, class ValueType, class Score >
+inline
+ValueType
+local_alignment(const Data& x, const Data& y,
+		ValueType beta,	ValueType gap, ValueType ext,
+		Score score)
+{
+  ValueType beta_gap = exp(beta*gap);
+  ValueType beta_ext = exp(beta*ext);
+  typedef boost::multi_array<ValueType,2> dp_type;
   dp_type M(boost::extents[x.size()+1][y.size()+1]);
   dp_type X(boost::extents[x.size()+1][y.size()+1]);
   dp_type Y(boost::extents[x.size()+1][y.size()+1]);
@@ -103,13 +123,13 @@ operator()(const Data& x, const Data& y) const
   //calculate
   for (uint i=1; i != x.size()+1; ++i) {
     for (uint j=1; j != y.size()+1; ++j) {
-      M[i][j] = exp(beta_ * score(x, y, i-1, j-1, alpha_))
+      M[i][j] = exp(beta * score(x, y, i-1, j-1))
 	* (1 + X[i-1][j-1] + Y[i-1][j-1] + M[i-1][j-1]);
-      X[i][j] = beta_gap_ * M[i-1][j] 
-	+ beta_ext_ * X[i-1][j] ;
+      X[i][j] = beta_gap * M[i-1][j] 
+	+ beta_ext * X[i-1][j] ;
       
-      Y[i][j] = beta_gap_ * (M[i][j-1] + X[i][j-1]) 
-	+ beta_ext_ * Y[i][j-1] ;
+      Y[i][j] = beta_gap * (M[i][j-1] + X[i][j-1]) 
+	+ beta_ext * Y[i][j-1] ;
 
       X2[i][j]= M[i-1][j] + X2[i-1][j];
       Y2[i][j]= M[i][j-1] + X2[i][j-1] + Y2[i][j-1];
@@ -118,6 +138,17 @@ operator()(const Data& x, const Data& y) const
 
   return 1+X2[x.size()][y.size()]
     + Y2[x.size()][y.size()] + M[x.size()][y.size()];
+}
+
+template < class ValueType, class Data >
+ValueType
+BPLAKernel<ValueType,Data>::
+operator()(const Data& x, const Data& y) const
+{
+  if (noBP_)
+    return local_alignment(x, y, beta_, gap_, ext_, LAScore<ValueType,Data>());
+  else
+    return local_alignment(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(alpha_));
 }
 
 template class BPLAKernel<double,MData>;

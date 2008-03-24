@@ -74,10 +74,14 @@ template < class Seq >
 bool
 load_fa(MASequence<Seq>& ma, file_iterator<>& fi)
 {
+  file_iterator<> st = fi;
   std::string name, seq;
   fa_parser<Seq> parser(name, seq);
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
-  if (!info.hit) return false;
+  if (!info.hit) {
+    fi = st;
+    return false;
+  }
   fi = info.stop;
   Seq s;
   char2rna(s, seq);
@@ -89,10 +93,14 @@ template < class Seq >
 bool
 load_fa(std::list<Seq>& ma, file_iterator<>& fi)
 {
+  file_iterator<> st = fi;
   std::string name, seq;
   fa_parser<Seq> parser(name, seq);
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
-  if (!info.hit) return false;
+  if (!info.hit) {
+    fi = st;
+    return false;
+  }
   fi = info.stop;
   Seq s;
   char2rna(s, seq);

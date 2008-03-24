@@ -15,21 +15,19 @@ public:
   typedef ValueType value_type;
   
 public:
-  BPLAKernel(value_type gap=1,value_type ext=1,
+  BPLAKernel(bool noBP, value_type gap=1,value_type ext=1,
 	     value_type alpha=1,value_type beta=1) 
-    : gap_(gap), ext_(ext), alpha_(alpha), beta_(beta), 
-      beta_gap_(exp(beta*gap)), beta_ext_(exp(beta*ext))
+    : noBP_(noBP), gap_(gap), ext_(ext), alpha_(alpha), beta_(beta)
   {}
 
   value_type operator()(const Data& xx, const Data& yy) const;
 
 private:
+  bool noBP_;
   value_type gap_;
   value_type ext_;
   value_type alpha_;
   value_type beta_;
-  value_type beta_gap_;
-  value_type beta_ext_;
 };
 
 #endif

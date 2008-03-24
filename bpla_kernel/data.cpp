@@ -32,11 +32,14 @@ fill_weight(const IS& s,
   for (uint i=0; i<bp.size(); ++i) {
     p_l[i]=p_r[i]=0.0;
     for (uint j=0; j<i; ++j)
-      p_l[i] += bp(j+1, i+1);
+      p_r[i] += bp(j+1, i+1);
     for (uint j=i+1; j<bp.size(); ++j) 
-      p_r[i] += bp(i+1, j+1);
+      p_l[i] += bp(i+1, j+1);
     p_u[i] = 1.0-(p_l[i]+p_r[i]);
     if (p_u[i] < 0.0) p_u[i] = 0.0; // error around
+    p_r[i] = sqrt(p_r[i]);
+    p_l[i] = sqrt(p_l[i]);
+    p_u[i] = sqrt(p_u[i]);
   }
 }
 

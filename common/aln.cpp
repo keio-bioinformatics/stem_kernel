@@ -92,9 +92,10 @@ struct aln_parser : public grammar< aln_parser >
       aln = header >> +empty >> body;
       head_word = str_p("CLUSTAL") | str_p("PROBCONS");
       header =  head_word >> +print_p >> eol_p;
-      body_part = +seq[push_seq(self.wa)] >> !status >> +empty;
-      body = +(body_part[reset_index(self.wa)]);
       empty = *blank_p >> eol_p;
+      body_part = +seq[push_seq(self.wa)] >> !status;
+      body = body_part[reset_index(self.wa)]
+	>> *(+empty >> body_part[reset_index(self.wa)]);
       seq
 	= (+graph_p - head_word)[assign_a(self.wa.cur_name)]
 	>> +blank_p >> (+graph_p)[assign_a(self.wa.cur_seq)]
@@ -129,10 +130,14 @@ template < class Seq >
 bool
 load_aln(std::list<Seq>& ma, file_iterator<>& fi)
 {
+  file_iterator<> s = fi;
   aln_parser::WA wa;
   aln_parser parser(wa);
   parse_info<file_iterator<> > info =  parse(fi, fi.make_end(), parser);
-  if (!info.hit) return false;
+  if (!info.hit) {
+    fi = s;
+    return false;
+  }
   fi = info.stop;
 
   std::deque<std::string>::const_iterator x;

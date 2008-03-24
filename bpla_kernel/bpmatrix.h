@@ -17,9 +17,20 @@ public:
   struct Options
   {
     bool alifold;
+    bool no_GU;
+    bool no_closingGU;
+    bool no_LonelyPairs;
     float th;
     uint n_samples;
 
+    Options()
+      : alifold(false),
+	no_GU(false),
+	no_closingGU(false),
+	no_LonelyPairs(false),
+	th(0.01),
+	n_samples(0)
+    {}
     void add_options(boost::program_options::options_description& desc);
     uint method() const;
   };

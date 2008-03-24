@@ -41,15 +41,28 @@ BPMatrix::Options::
 add_options(po::options_description& desc)
 {
   desc.add_options()
+#if 0
     ("basepair,p",
      po::value<float>(&th)->default_value(0.01),
      "set the threshold of basepairing probability")
+#endif
+    ("noGU",
+     po::value<bool>(&no_GU)->zero_tokens()->default_value(false),
+     "disallow GU wobble base-pairs")
+    ("noClosingGU",
+     po::value<bool>(&no_closingGU)->zero_tokens()->default_value(false),
+     "disallow closing GU base-pairs")
+    ("noLonelyPairs",
+     po::value<bool>(&no_LonelyPairs)->zero_tokens()->default_value(false),
+     "disallow lonely base-pairs")
     ("use-alifold",
      po::value<bool>(&alifold)->zero_tokens()->default_value(false),
      "use pf_alifold for producing base pairing probability matrices")
+#if 0
     ("sampling",
      po::value<uint>(&n_samples)->default_value(0),
      "use stochastic sampling for producing base pairing probability matrices")
+#endif
 #if 0
     ("window-size,w", po::value<uint>(&win_sz)->default_value(0),
      "set the window size for folding RNAs")
@@ -105,6 +118,9 @@ make_bp_matrix(BPMatrix& bp, const std::string &x,
 {
   std::string s(x);
   boost::algorithm::to_lower(s);
+  Vienna::noGU = opts.no_GU ? 1 :0;
+  Vienna::no_closingGU = opts.no_closingGU ? 1 : 0;
+  Vienna::noLonelyPairs = opts.no_LonelyPairs ? 1 : 0;
   switch (opts.method()) {
   case BPMatrix::FOLD:
     {
@@ -259,6 +275,9 @@ bool
 make_bp_matrix(BPMatrix& bp, const std::list<std::string>& ma,
 	       const BPMatrix::Options& opts)
 {
+  Vienna::noGU = opts.no_GU ? 1 :0;
+  Vienna::no_closingGU = opts.no_closingGU ? 1 : 0;
+  Vienna::noLonelyPairs = opts.no_LonelyPairs ? 1 : 0;
   switch (opts.method()) {
   case BPMatrix::ALIFOLD:
     {
