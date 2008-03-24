@@ -9,3 +9,8 @@ if OPT_SIMPAL
 endif
 SUBDIRS =  common libsvm \
 	$(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite bpla_kernel
+
+EXTRA_DIST = README.rd README.html
+
+README.html: README.rd
+	rd2 README.rd > README.html
