@@ -43,10 +43,10 @@ operator=(const ProfileSequence& s)
 // private
 void
 ProfileSequence::
-initialize(uint sz)
+initialize(unsigned int sz)
 {
   profile_.resize(sz);
-  for (uint i=0; i!=profile_.size(); ++i)
+  for (unsigned int i=0; i!=profile_.size(); ++i)
     profile_[i].resize(N_RNA+1, 0.0);
   n_seqs_ = 0;
 }
@@ -59,10 +59,10 @@ add_sequence(const std::string& seq, value_type w /*=1.0*/)
   if (profile_.size() != seq.size())
     throw "alignment error";
     
-  for (uint i=0; i!=profile_.size(); ++i) {
+  for (unsigned int i=0; i!=profile_.size(); ++i) {
     rna_t r = char2rna(seq[i]);
     if (r != RNASymbol<rna_t>::GAP) {
-      for (uint j=0; j!=N_RNA; ++j) {
+      for (unsigned int j=0; j!=N_RNA; ++j) {
 	profile_[i][j] += iupac_weight[r][j]*w;
       }
     } else {
@@ -80,8 +80,8 @@ add_sequence(const ProfileSequence& seq, value_type w /*=1.0*/)
   if (profile_.size() != seq.size())
     throw "alignment error";
 
-  for (uint i=0; i!=profile_.size(); ++i) {
-    for (uint j=0; j!=N_RNA+1; ++j) {
+  for (unsigned int i=0; i!=profile_.size(); ++i) {
+    for (unsigned int j=0; j!=N_RNA+1; ++j) {
       profile_[i][j] += seq[i][j]*w;
     }
   }

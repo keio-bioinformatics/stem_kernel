@@ -55,9 +55,9 @@ public:
 
   value_type n_seqs() const { return n_seqs_; }
 
-  uint size() const { return profile_.size(); }
+  unsigned int size() const { return profile_.size(); }
 
-  const Column& operator[](uint i) const { return profile_[i]; }
+  const Column& operator[](unsigned int i) const { return profile_[i]; }
 
   const_iterator begin() const { return profile_.begin(); }
 
@@ -68,7 +68,7 @@ public:
   void add_sequence(const ProfileSequence& seq, value_type w=1.0);
 
 private:
-  void initialize(uint sz);
+  void initialize(unsigned int sz);
 
 private:  
   value_type n_seqs_;

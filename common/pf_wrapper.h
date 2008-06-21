@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+typedef unsigned int uint;
 
 extern "C" {
 #include <ViennaRNA/fold_vars.h>

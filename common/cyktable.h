@@ -29,6 +29,7 @@
 #include <cassert>
 #include <utility>
 
+typedef unsigned int uint;
 typedef std::pair<uint,uint> Pos;
 
 /**

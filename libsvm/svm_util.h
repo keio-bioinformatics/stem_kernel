@@ -22,7 +22,7 @@ public:
   void do_svm_predict(double target, const std::vector<svm_node>& x);
 
   static
-  void make_svm_node(uint n, const std::vector<double>& v,
+  void make_svm_node(unsigned int n, const std::vector<double>& v,
 		     std::vector<svm_node>& x);
 
 private:
@@ -39,11 +39,11 @@ private:
   double sumyy_;
   double sumvy_;
 
-  const static uint MAX = 10*1024*1024; // 10MB
+  const static unsigned int MAX = 10*1024*1024; // 10MB
 };
 
 bool
-load_sv_index(std::vector<uint>& sv_index,
+load_sv_index(std::vector<unsigned int>& sv_index,
 	      const std::vector<std::string>& models);
 
 #endif	//  __INC_SVM_UTIL_H__

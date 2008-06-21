@@ -42,7 +42,7 @@ SVMPredict::
 do_svm_predict(double target, const std::vector<svm_node>& x)
 {
   int svm_type=svm_get_svm_type(model_);
-  uint nr_class=svm_get_nr_class(model_);
+  unsigned int nr_class=svm_get_nr_class(model_);
   double v;
   std::vector<double> prob_estimates(nr_class);
   if (predict_probability_ && (svm_type==C_SVC || svm_type==NU_SVC)) {
@@ -55,10 +55,10 @@ do_svm_predict(double target, const std::vector<svm_node>& x)
     v = svm_predict(model_, &x[0]);
     std::vector<double> dec_values(nr_class*(nr_class-1)/2);
     svm_predict_values(model_, &x[0], &dec_values[0]);
-    uint pos=0;
+    unsigned int pos=0;
     s_out_ << target << " ";
-    for(uint i=0; i!=nr_class; ++i)
-      for(uint j=i+1; j!=nr_class; ++j)
+    for(unsigned int i=0; i!=nr_class; ++i)
+      for(unsigned int j=i+1; j!=nr_class; ++j)
 	s_out_ << dec_values[pos++] << " ";
     s_out_ << std::endl;
   }
@@ -82,12 +82,12 @@ do_svm_predict(double target, const std::vector<svm_node>& x)
 //static
 void
 SVMPredict::
-make_svm_node(uint n, const std::vector<double>& v, std::vector<svm_node>& x)
+make_svm_node(unsigned int n, const std::vector<double>& v, std::vector<svm_node>& x)
 {
   //x.resize(v.size()+2);
   x[0].index = 0;
   x[0].value = n;
-  for (uint i=0; i!=v.size(); ++i) {
+  for (unsigned int i=0; i!=v.size(); ++i) {
     x[i+1].index = i+1;
     x[i+1].value = v[i];
   }

@@ -364,8 +364,8 @@ public:
     const char& a=seq_[i];
     const char& b=seq_[j];
     return i+1+loop_<=j && 
-      (a=='a' && b=='u' || a=='u' && b=='a' ||
-       a=='g' && b=='c' || a=='c' && b=='g') ? 1.0 : 0.0;
+      ((a=='a' && b=='u') || (a=='u' && b=='a') ||
+       (a=='g' && b=='c') || (a=='c' && b=='g')) ? 1.0 : 0.0;
   }
 
 private:
@@ -387,9 +387,9 @@ public:
     const char& a=seq_[i];
     const char& b=seq_[j];
     return i+1+loop_<=j &&
-      (a=='a' && b=='u' || a=='u' && b=='a' ||
-       a=='g' && b=='c' || a=='c' && b=='g' ||
-       a=='g' && b=='u' || a=='u' && b=='g') ? 1.0 : 0.0;
+      ((a=='a' && b=='u') || (a=='u' && b=='a') ||
+       (a=='g' && b=='c') || (a=='c' && b=='g') ||
+       (a=='g' && b=='u') || (a=='u' && b=='g')) ? 1.0 : 0.0;
   }
 
 private:

@@ -17,7 +17,6 @@
 #include "../common/aln.h"
 
 template < class Seq >
-static
 uint
 seq_size(const Seq& seq)
 {
@@ -25,7 +24,6 @@ seq_size(const Seq& seq)
 }
 
 template < >
-static
 uint
 seq_size(const std::list<std::string>& seq)
 {

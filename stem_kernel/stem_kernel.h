@@ -27,7 +27,7 @@ class StemKernel
 {
 public:
   typedef ValueType value_type;
-  typedef DPTable<value_type,PoolAllocator> DPTable;
+  typedef DPTableTmpl<value_type,PoolAllocator> DPTable;
 
 private:
   bool use_GU_;
