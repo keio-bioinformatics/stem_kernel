@@ -294,15 +294,6 @@ private:
   {
     assert(labels.size()==files.size());
     for (uint i=0; i!=files.size(); ++i) {
-      double elapsed = 0.0;
-#ifdef HAVE_MPI
-      if (MPI::COMM_WORLD.Get_rank()==0) {
-#endif
-	std::cout << "loading " << files[i]
-		  << " as label " << labels[i] << std::flush;
-#ifdef HAVE_MPI
-      }
-#endif
       Glob glob(files[i].c_str());
       if (glob.empty()) {
 	std::ostringstream os;
@@ -312,8 +303,17 @@ private:
       }
       Glob::const_iterator p;
       for (p=glob.begin(); p!=glob.end(); ++p) {
+	double elapsed = 0.0;
 	typename LDF::Loader* loader=ldf_.get_loader(p->c_str());
 	if (loader==NULL) return false;
+#ifdef HAVE_MPI
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+#endif
+	  std::cout << "loading " << *p
+		    << " as label " << labels[i] << std::flush;
+#ifdef HAVE_MPI
+	}
+#endif
 	while (true) {
 	  boost::timer tm;
 	  Data* d = loader->get();
@@ -322,15 +322,15 @@ private:
 	  ex.push_back(std::make_pair(labels[i], *d));
 	  delete d;
 	}
+#ifdef HAVE_MPI
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+#endif
+	  std::cout << " (" << elapsed << "s) done." << std::endl;
+#ifdef HAVE_MPI
+	}
+#endif
 	delete loader;
       }
-#ifdef HAVE_MPI
-      if (MPI::COMM_WORLD.Get_rank()==0) {
-#endif
-	std::cout << " (" << elapsed << "s) done." << std::endl;
-#ifdef HAVE_MPI
-      }
-#endif
     }
     return true;
   }
