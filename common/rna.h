@@ -113,10 +113,10 @@ public:
     return *this;
   }
 
-  uint n_seqs() const { return val_.size(); }
-  const V& operator[](uint i) const { return val_[i]; }
+  unsigned int n_seqs() const { return val_.size(); }
+  const V& operator[](unsigned int i) const { return val_[i]; }
   void push_back(const V& v);
-  uint cnt(uint x) const { return cnt_[x]; }
+  unsigned int cnt(unsigned int x) const { return cnt_[x]; }
 
 private:
   std::deque<V> val_;
@@ -129,13 +129,13 @@ class MASequence : public std::vector< Column<typename Seq::value_type>  >
 public:
   typedef Seq SingleSeq;
 
-  uint n_seqs() const
+  unsigned int n_seqs() const
   {
     return this->size()==0 ? 0 : (*this)[0].n_seqs();
   }
 
   MASequence<Seq>& add_seq(const Seq& seq);
-  Seq get_seq(uint i) const;
+  Seq get_seq(unsigned int i) const;
 };
 
 extern bool iupac_symbol[N_IUPAC][N_RNA];

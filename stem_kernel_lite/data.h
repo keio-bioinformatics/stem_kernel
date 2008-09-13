@@ -47,6 +47,8 @@ void set_folding_method(uint method);
 void set_bp_threshold(float th);
 
 void set_window_size(uint win_sz, uint pair_sz);
+
+void set_use_pf_scale(bool use_pf_scale);
   
 template < class Data >
 bool

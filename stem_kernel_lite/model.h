@@ -7,7 +7,7 @@
 #include <vector>
 
 bool
-load_sv_index(std::vector<uint>& sv_index,
+load_sv_index(std::vector<unsigned int>& sv_index,
 	      const std::vector<std::string>& models);
 
 #endif	// __INC_MODEL_H__

@@ -23,6 +23,7 @@
 
 namespace Vienna {
 extern "C" {
+#include <ViennaRNA/fold.h>
 #include <ViennaRNA/fold_vars.h>
 #include <ViennaRNA/part_func.h>
 #include <ViennaRNA/alifold.h>
@@ -42,6 +43,7 @@ static uint folding_method_;
 static float th_;
 static uint win_sz_;
 static uint pair_sz_;
+static bool use_pf_scale_;
 
 void set_folding_method(uint method)
 {
@@ -59,6 +61,11 @@ void set_window_size(uint win_sz, uint pair_sz)
   pair_sz_ = pair_sz;
   if (pair_sz_==0 || win_sz_<pair_sz_)
     pair_sz_ = win_sz_;
+}
+
+void set_use_pf_scale(bool use_pf_scale)
+{
+  use_pf_scale_ = use_pf_scale;
 }
 
 template < class Seq, class BPM, class Node >
@@ -277,7 +284,16 @@ make_bp_matrix_helper(const std::string &s, uint method)
       static boost::mutex mtx;
       boost::mutex::scoped_lock lock(mtx);
 #endif
-      Vienna::pf_scale = -1;
+      if (use_pf_scale_) {
+	int length = s.size();
+	char* str = new char[length+1];
+	double min_en = Vienna::fold(s.c_str(), str);
+	double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
+	Vienna::pf_scale = exp(-(1.07*min_en)/kT/length);
+	delete[] str;
+      } else {
+	Vienna::pf_scale = -1;
+      }
       Vienna::init_pf_fold(s.size());
       Vienna::pf_fold(const_cast<char*>(s.c_str()), NULL);
       BPMatrixPtr bp(new BPMatrix(s.size(), Vienna::pr, Vienna::iindx));

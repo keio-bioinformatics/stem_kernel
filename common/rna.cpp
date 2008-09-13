@@ -282,12 +282,12 @@ erase_gap(const Seq& seq, const std::string& str,
       if (seq[i]==GAP) {
 	pa_map[pa_map[i]]=static_cast<uint>(-1);
 	pa_map[i]=static_cast<uint>(-1);
-      } else if (seq[i]==A && seq[pa_map[i]]==U ||
-		 seq[i]==U && seq[pa_map[i]]==A ||
-		 seq[i]==G && seq[pa_map[i]]==C ||
-		 seq[i]==C && seq[pa_map[i]]==G ||
-		 seq[i]==G && seq[pa_map[i]]==U ||
-		 seq[i]==U && seq[pa_map[i]]==G ) {
+      } else if ((seq[i]==A && seq[pa_map[i]]==U) ||
+		 (seq[i]==U && seq[pa_map[i]]==A) ||
+		 (seq[i]==G && seq[pa_map[i]]==C) ||
+		 (seq[i]==C && seq[pa_map[i]]==G) ||
+		 (seq[i]==G && seq[pa_map[i]]==U) ||
+		 (seq[i]==U && seq[pa_map[i]]==G) ) {
       } else {
 	pa_map[pa_map[i]]=static_cast<uint>(-1);
 	pa_map[i]=static_cast<uint>(-1);

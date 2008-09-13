@@ -215,7 +215,7 @@ do_predict(const std::string& output_file,
     bool norm = enable_normalize || !test_norm_output.empty();
     MakeData<Data> mkdata(extra_args[i+1].c_str());
     std::string label = extra_args[i];
-    double target = atof(label.c_str());
+    //double target = atof(label.c_str());
     while (true) {
       Data data;
       if (mkdata(data, cnt<skip)) {
@@ -439,7 +439,7 @@ int
 main(int argc, char** argv)
 {
   double th;
-  uint win_sz, pair_sz;
+  //uint win_sz, pair_sz;
 #ifdef HAVE_MPI
   MPIState mpi_state(argc, argv);
 #endif
@@ -469,6 +469,7 @@ main(int argc, char** argv)
     ("pair-width", po::value<uint>(&pair_sz)->default_value(0),
      "set the pair width for pairing bases")
 #endif
+    ("pf-scale", "calculate appropriate pf_scales by MFE")
     ("length-band", po::value<uint>(&len_band)->default_value(0),
      "set the band of difference of the length between bases")
     //("no-ribosum", "do not use the RIBOSUM substitution matrix")
@@ -519,10 +520,11 @@ main(int argc, char** argv)
   use_string = !vm.count("no-string");
   use_ribosum = !vm.count("no-ribosum");
   set_folding_method(vm.count("use-alifold") ? ALIFOLD : FOLD);
-  if (win_sz>0) set_folding_method(LFOLD);
+  set_use_pf_scale(vm.count("pf-scale"));
+  //if (win_sz>0) set_folding_method(LFOLD);
   if (use_string_only) set_folding_method(NO_BPMATRIX);
   set_bp_threshold(th);
-  set_window_size(win_sz, pair_sz);
+  //set_window_size(win_sz, pair_sz);
   predict_only = vm.count("no-matrix");
 
   bool res = false;

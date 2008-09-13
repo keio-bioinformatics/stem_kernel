@@ -9,7 +9,7 @@
 #include "allocator.h"
 
 template < class Cell, template <class> class Allocator = NewAllocator >
-class DPTable : Allocator< CYKTable< Cell > >
+class DPTableT : Allocator< CYKTable< Cell > >
 {
 private:
   typedef CYKTable< Cell > TableY;
@@ -21,7 +21,7 @@ private:
   Table table_;
 
 public:
-  DPTable(uint n_states, uint size_x, uint size_y)
+  DPTableT(uint n_states, uint size_x, uint size_y)
     : size_x_(size_x), size_y_(size_y), table_(n_states)
   {
     for (uint s=0; s!=table_.size(); ++s) {
@@ -30,7 +30,7 @@ public:
     }
   }
   
-  ~DPTable()
+  ~DPTableT()
   {
     destroy_all();
     for (uint i=0; i!=table_.size(); ++i) {
