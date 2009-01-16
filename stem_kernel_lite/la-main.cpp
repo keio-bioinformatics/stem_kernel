@@ -8,14 +8,12 @@
 #include <string>
 #include <cassert>
 #include <boost/program_options.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <boost/bind.hpp>
 #include "../common/framework.h"
 #include "data.h"
 #include "../common/rna.h"
 #include "def_kernel.h"
 
-using namespace boost::lambda;
 namespace po = boost::program_options;
 
 int
@@ -68,7 +66,7 @@ main(int argc, char** argv)
     collect_unrecognized(parsed.options, po::include_positional);
   std::vector<po::option>::iterator new_end =
     std::remove_if(parsed.options.begin(), parsed.options.end(),
-		   bind(&po::option::unregistered, _1) );
+		   boost::bind(&po::option::unregistered, _1) );
   parsed.options.erase(new_end, parsed.options.end());
   po::store(parsed, vm);
   po::notify(vm);
@@ -106,14 +104,14 @@ main(int argc, char** argv)
       if (!no_ribosum) {
 	typedef DataLoaderFactory<DataLoader<MData> > LDF;
 	typedef StringKernel<double,MData> SuStringKernel;
-	LDF ldf(bp_opts);
+	LDF ldf(0.0, bp_opts);
 	SuStringKernel kernel(gap, alpha);
 	App<SuStringKernel,LDF> app(kernel, ldf, opts);
 	res = app.execute();
       } else {
 	typedef DataLoaderFactory<DataLoader<MData> > LDF;
 	typedef StringKernel<double,MData> SiStringKernel;
-	LDF ldf(bp_opts);
+	LDF ldf(0.0, bp_opts);
 	SiStringKernel kernel(gap, str_match, str_mismatch);
 	App<SiStringKernel,LDF> app(kernel, ldf, opts);
 	res = app.execute();

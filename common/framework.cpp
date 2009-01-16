@@ -23,6 +23,11 @@ add_options(boost::program_options::options_description& opts)
     ("norm,x",
      po::value<std::string>(&norm_output),
      "set the filename for norms of test examples")
+#if 0
+    ("use-pf-scale-file",
+     po::value<bool>(&use_pf_scale_file)->zero_tokens()->default_value(false),
+     "use pf_scales given by additional files")
+#endif
     ("no-matrix",
      po::value<bool>(&predict_only)->zero_tokens()->default_value(false),
      "do not output matrix")
@@ -48,43 +53,89 @@ parse_extra_args(const std::vector<std::string>& extra_args)
   predict_mode =
     extra_args.end()!=std::find(extra_args.begin(),
 				extra_args.end(), "--test");
-  if (!predict_mode) {
-    uint n=(extra_args.size()-1)/2;
-    labels.resize(n);
-    files.resize(n);
-    n=0;
-    for (uint i=1; i<extra_args.size(); i+=2) {
-      labels[n]=extra_args[i];
-      files[n]=extra_args[i+1];
-      ++n;
+  if (!use_pf_scale_file) {
+    if (!predict_mode) {
+      uint n=(extra_args.size()-1)/2;
+      labels.resize(n);
+      files.resize(n);
+      n=0;
+      for (uint i=1; i<extra_args.size(); i+=2) {
+	labels[n]=extra_args[i];
+	files[n]=extra_args[i+1];
+	++n;
+      }
+    } else {
+      uint x = std::find(extra_args.begin(),
+			 extra_args.end(), "--test") - extra_args.begin();
+      uint n=(x-1)/2;
+      uint m=(extra_args.size()-2)/2-n;
+      labels.resize(n);
+      files.resize(n);
+      ts_labels.resize(m);
+      ts_files.resize(m);
+      n=0; m=0;
+      for (uint i=1; i<x; i+=2) {
+	labels[n]=extra_args[i];
+	files[n]=extra_args[i+1];
+	++n;
+      }
+      for (uint i=x+1; i<extra_args.size(); i+=2) {
+	ts_labels[m]=extra_args[i];
+	ts_files[m]=extra_args[i+1];
+	++m;
+      }
+
+      // predict mode
+      if (!trained_model_file.empty()) {
+	if (!load_sv_index(sv_index, trained_model_file))
+	  return ;
+      }
     }
   } else {
-    uint x = std::find(extra_args.begin(),
-		       extra_args.end(), "--test") - extra_args.begin();
-    uint n=(x-1)/2;
-    uint m=(extra_args.size()-2)/2-n;
-    labels.resize(n);
-    files.resize(n);
-    ts_labels.resize(m);
-    ts_files.resize(m);
-    n=0; m=0;
-    for (uint i=1; i<x; i+=2) {
-      labels[n]=extra_args[i];
-      files[n]=extra_args[i+1];
-      ++n;
-    }
-    for (uint i=x+1; i<extra_args.size(); i+=2) {
-      ts_labels[m]=extra_args[i];
-      ts_files[m]=extra_args[i+1];
-      ++m;
-    }
+    if (!predict_mode) {
+      uint n=(extra_args.size()-1)/3;
+      labels.resize(n);
+      files.resize(n);
+      pf_files.resize(n);
+      n=0;
+      for (uint i=1; i<extra_args.size(); i+=3) {
+	labels[n]=extra_args[i];
+	files[n]=extra_args[i+1];
+	pf_files[n]=extra_args[i+2];
+	++n;
+      }
+    } else {
+      uint x = std::find(extra_args.begin(),
+			 extra_args.end(), "--test") - extra_args.begin();
+      uint n=(x-1)/3;
+      uint m=(extra_args.size()-2)/3-n;
+      labels.resize(n);
+      files.resize(n);
+      pf_files.resize(n);
+      ts_labels.resize(m);
+      ts_files.resize(m);
+      pf_ts_files.resize(m);
+      n=0; m=0;
+      for (uint i=1; i<x; i+=2) {
+	labels[n]=extra_args[i];
+	files[n]=extra_args[i+1];
+	pf_files[n]=extra_args[i+2];
+	++n;
+      }
+      for (uint i=x+1; i<extra_args.size(); i+=2) {
+	ts_labels[m]=extra_args[i];
+	ts_files[m]=extra_args[i+1];
+	pf_ts_files[m]=extra_args[i+2];
+	++m;
+      }
 
-    // predict mode
-    if (!trained_model_file.empty()) {
-      if (!load_sv_index(sv_index, trained_model_file))
-	return ;
+      // predict mode
+      if (!trained_model_file.empty()) {
+	if (!load_sv_index(sv_index, trained_model_file))
+	  return ;
+      }
     }
-  }
+  }  
 }
 
 Output::

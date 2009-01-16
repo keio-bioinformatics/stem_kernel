@@ -142,6 +142,11 @@ namespace DAG {
     bp_freq_iterator bp_freq_begin() const { return bp_freq_.begin(); }
     bp_freq_iterator bp_freq_end() const { return bp_freq_.end(); }
     uint length() const { return last_-first_; }
+    uint used_memory_size() const
+    {
+      return sizeof(Node) + sizeof(Edge)*edges_.size()
+	+ (sizeof(bp_freq_t)+sizeof(void*)*2)*bp_freq_.size();
+    }
 
   private:
     uint first_;

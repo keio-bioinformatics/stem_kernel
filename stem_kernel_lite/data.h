@@ -6,7 +6,7 @@
 #include <vector>
 #include <boost/spirit/iterator/file_iterator.hpp>
 #include "dag.h"
-#include "bpmatrix.h" // for definitions folding methods
+#include "../common/bpmatrix.h" // for definitions folding methods
 #include "../common/profile.h"
 namespace Vienna {
   extern "C" {
@@ -29,7 +29,7 @@ struct Data
 
   Data() : tree(), seq(), root(), max_pa(), weight() { }
 
-  Data(const IS& seq, const BPMatrix::Options& opts);
+  Data(const IS& seq, float th, float pf_scale, const BPMatrix::Options& opts);
 
   Data(const IS& seq);
 
@@ -38,9 +38,11 @@ struct Data
       max_pa(x.max_pa), weight(x.weight)
   {
   }
+
+  uint used_memory_size() const;
+  uint max_node_size() const;
 };
 
-typedef Data< ProfileSequence, std::string> SData;
 typedef Data< ProfileSequence, std::list<std::string> > MData;
 
 template < class D >
@@ -50,7 +52,12 @@ public:
   typedef D Data;
 
 public:
-  DataLoader(const char* filename,
+  DataLoader(const char* filename, float th,
+	     const BPMatrix::Options& bp_opts, bool use_bp)
+  {
+  }
+
+  DataLoader(const char* filename, float th, const char* pf_scales,
 	     const BPMatrix::Options& bp_opts, bool use_bp)
   {
   }
@@ -61,41 +68,28 @@ private:
 };
 
 template < >
-class DataLoader<SData>
-{
-public:
-  typedef SData Data;
-
-public:
-  DataLoader(const char* filename,
-	     const BPMatrix::Options& bp_opts, bool use_bp);
-  Data* get();
-
-private:
-  const BPMatrix::Options& bp_opts_;
-  bool use_bp_;
-  std::string filename_;
-  uint type_;
-  boost::spirit::file_iterator<> fi_;
-};
-
-template < >
 class DataLoader<MData>
 {
 public:
   typedef MData Data;
 
 public:
-  DataLoader(const char* filename,
+  DataLoader(const char* filename, float th,
 	     const BPMatrix::Options& bp_opts, bool use_bp);
+  DataLoader(const char* filename, float th, const char* pf_scales,
+	     const BPMatrix::Options& bp_opts, bool use_bp);
+  ~DataLoader();
+
   Data* get();
 
 private:
+  float th_;
   const BPMatrix::Options& bp_opts_;
   bool use_bp_;
   std::string filename_;
   uint type_;
   boost::spirit::file_iterator<> fi_;
+  std::ifstream* pf_is_;
 };
 
 template < class LD >
@@ -106,47 +100,28 @@ public:
   typedef typename Loader::Data Data;
 
 public:
-  DataLoaderFactory(const BPMatrix::Options& bp_opts)
-    : bp_opts_(bp_opts), use_bp_(true)
+  DataLoaderFactory(float th, const BPMatrix::Options& bp_opts)
+    : th_(th), bp_opts_(bp_opts), use_bp_(true)
   {
     Vienna::init_rand();
   }
 
-  DataLoaderFactory() : use_bp_(false)
+  DataLoaderFactory() : th_(0.0), use_bp_(false)
   {
   }
   
   Loader* get_loader(const char* filename) const
   {
-    return new Loader(filename, bp_opts_, use_bp_);
+    return new Loader(filename, th_, bp_opts_, use_bp_);
+  }
+
+  Loader* get_loader(const char* filename, const char* pf_scales) const
+  {
+    return new Loader(filename, th_, pf_scales, bp_opts_, use_bp_);
   }
 
 private:
-  BPMatrix::Options bp_opts_;
-  bool use_bp_;
-};
-
-template < >
-class DataLoaderFactory< DataLoader<SData> >
-{
-public:
-  typedef DataLoader<SData> Loader;
-  typedef Loader::Data Data;
-
-public:
-  DataLoaderFactory(const BPMatrix::Options& bp_opts)
-    : bp_opts_(bp_opts),  use_bp_(true)
-  {
-    Vienna::init_rand();
-  }
-
-  DataLoaderFactory() : use_bp_(false)
-  {
-  }
-  
-  Loader* get_loader(const char* filename) const;
-
-private:
+  float th_;
   BPMatrix::Options bp_opts_;
   bool use_bp_;
 };

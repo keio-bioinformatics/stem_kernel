@@ -26,13 +26,21 @@ AC_ARG_ENABLE([simpal],
   AS_HELP_STRING([--enable-simpal],
     [build simple palindrom kernels]))
 
+# CONTRAfold
+AC_ARG_WITH([contrafold], AS_HELP_STRING([--with-contrafold],[link the CONTRAfold library]),
+    [
+      AC_DEFINE([HAVE_LIBCONTRAFOLD], [], [link the CONTRAfold library])
+      LIBCONTRAFOLD="-lcontrafold"
+    ]
+)
+AC_SUBST(LIBCONTRAFOLD)
 	    	   
 # Checks for libraries.
 
 AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
    [ ACX_MPI([
        AC_DEFINE([HAVE_MPI], [], [have MPI headers])
-       CC=$MPICC
+       #CC=$MPICXX
        CXX=$MPICXX
    ]) 
 ])        
@@ -72,5 +80,5 @@ AM_CONDITIONAL([OPT_REF_IMPL], [test "$enable_ref_impl" = yes])
 AM_CONDITIONAL([OPT_STRING_KERNEL], [test "$enable_string_kernel" = yes])
 AM_CONDITIONAL([OPT_SIMPAL], [test "$enable_simpal" = yes])
 
-AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile bpla_kernel/Makefile])
+AC_CONFIG_FILES([Makefile common/Makefile libsvm/Makefile optimizer/Makefile string_kernel/Makefile stem_kernel/Makefile simpal/Makefile stem_kernel_lite/Makefile bpla_kernel/Makefile])
 AC_OUTPUT

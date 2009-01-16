@@ -8,14 +8,12 @@
 #include <string>
 #include <cassert>
 #include <boost/program_options.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <boost/bind.hpp>
 #include "../common/framework.h"
 #include "data.h"
 #include "../common/rna.h"
 #include "bpla_kernel.h"
 
-using namespace boost::lambda;
 namespace po = boost::program_options;
 
 int
@@ -58,7 +56,7 @@ main(int argc, char** argv)
     collect_unrecognized(parsed.options, po::include_positional);
   std::vector<po::option>::iterator new_end =
     std::remove_if(parsed.options.begin(), parsed.options.end(),
-		   bind(&po::option::unregistered, _1) );
+		   boost::bind(&po::option::unregistered, _1) );
   parsed.options.erase(new_end, parsed.options.end());
   po::store(parsed, vm);
   po::notify(vm);
@@ -76,11 +74,19 @@ main(int argc, char** argv)
 
   bool res = false;
   try {
-    typedef DataLoaderFactory<DataLoader<MData> > LDF;
-    LDF ldf(bp_opts);
-    BPLAKernel<double,MData> kernel(vm.count("noBP"), gap, ext, alpha, beta);
-    App<BPLAKernel<double,MData>, LDF> app(kernel, ldf, opts);
-    res = app.execute();
+    if (vm.count("noBP")) {
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
+      LDF ldf;
+      BPLAKernel<double,MData> kernel(vm.count("noBP"), gap, ext, alpha, beta);
+      App<BPLAKernel<double,MData>, LDF> app(kernel, ldf, opts);
+      res = app.execute();
+    } else {
+      typedef DataLoaderFactory<DataLoader<MData> > LDF;
+      LDF ldf(bp_opts);
+      BPLAKernel<double,MData> kernel(vm.count("noBP"), gap, ext, alpha, beta);
+      App<BPLAKernel<double,MData>, LDF> app(kernel, ldf, opts);
+      res = app.execute();
+    }
   } catch (const char* str) {
 #ifdef HAVE_MPI
     if (/*MPI::COMM_WORLD.Get_rank()==0*/ 1) {

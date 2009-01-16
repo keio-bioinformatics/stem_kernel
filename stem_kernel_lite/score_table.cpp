@@ -382,20 +382,6 @@ edge_ext_score(const WorkArea& wa,
 typedef double ValueType;
 
 template
-class SimpleNodeScore<ValueType,SData>;
-
-template
-class SimpleEdgeScore<ValueType,SData>;
-
-template
-class SubstNodeScore<ValueType,SData>;
-
-#if 0
-template
-class SubstEdgeScore<ValueType,SData>;
-#endif
-
-template
 class SimpleNodeScore<ValueType,MData>;
 
 template

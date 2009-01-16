@@ -5,6 +5,7 @@
 #include "string_kernel.h"
 #include "ribosum.h"
 #include "data.h"
+#include "dptable.h"
 
 template < class V, class D >
 StringKernel<V,D>::
@@ -68,7 +69,6 @@ StringKernel<V,D>::
 operator()(const Data& xx, const Data& yy) const
 {
   typedef typename Data::Seq Seq;
-  typedef boost::multi_array<value_type,2> dp_type;
 
   const Seq& x(xx.seq);
   const Seq& y(yy.seq);
@@ -77,16 +77,14 @@ operator()(const Data& xx, const Data& yy) const
   bool use_weight = !w_x.empty() && !w_y.empty();
   uint sz_x = x.size();
   uint sz_y = y.size();
-  dp_type K0(boost::extents[sz_x+1][sz_y+1]);
-  dp_type G0(boost::extents[sz_x+1][sz_y+1]);
+  DPTable<value_type> K0(sz_x+1, sz_y+1);
+  DPTable<value_type> G0(sz_x+1, sz_y+1);
   std::vector<value_type> K1(sz_y+1);
   std::vector<value_type> G1(sz_y+1);
 
+  K0.allocate(0);
+  G0.allocate(0);
   K0[0][0] = G0[0][0] = 1.0;
-  for (uint i=1; i!=sz_x+1; ++i) {
-    K0[i][0] = 1.0;
-    G0[i][0] = G0[i-1][0]*gap_;
-  }
   for (uint j=1; j!=sz_y+1; ++j) {
     K0[0][j] = 1.0;
     G0[0][j] = G0[0][j-1]*gap_;
@@ -94,6 +92,10 @@ operator()(const Data& xx, const Data& yy) const
 
   if (use_weight) {
     for (uint i=1; i!=sz_x+1; ++i) {
+      K0.allocate(i);
+      G0.allocate(i);
+      K0[i][0] = 1.0;
+      G0[i][0] = G0[i-1][0]*gap_;
       K1[0] = G1[0] = 0.0;
       for (uint j=1; j!=sz_y+1; ++j) {
 	value_type v = G0[i-1][j-1]*w_x[i-1]*w_y[j-1];
@@ -103,9 +105,15 @@ operator()(const Data& xx, const Data& yy) const
 	K0[i][j] = K1[j] + K0[i-1][j];
 	G0[i][j] = G1[j] + G0[i-1][j]*gap_;
       }
+      K0.deallocate(i-1);
+      G0.deallocate(i-1);
     }
   } else {
     for (uint i=1; i!=sz_x+1; ++i) {
+      K0.allocate(i);
+      G0.allocate(i);
+      K0[i][0] = 1.0;
+      G0[i][0] = G0[i-1][0]*gap_;
       K1[0] = G1[0] = 0.0;
       for (uint j=1; j!=sz_y+1; ++j) {
 	value_type v = G0[i-1][j-1];
@@ -115,6 +123,8 @@ operator()(const Data& xx, const Data& yy) const
 	K0[i][j] = K1[j] + K0[i-1][j];
 	G0[i][j] = G1[j] + G0[i-1][j]*gap_;
       }
+      K0.deallocate(i-1);
+      G0.deallocate(i-1);
     }
   }
 

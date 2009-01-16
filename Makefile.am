@@ -7,7 +7,7 @@ endif
 if OPT_SIMPAL
   SIMPAL = simpal
 endif
-SUBDIRS =  common libsvm \
+SUBDIRS =  common libsvm optimizer \
 	$(STRING_KERNEL) $(STEM_KERNEL) $(SIMPAL) stem_kernel_lite bpla_kernel
 
 EXTRA_DIST = README.rd README.html

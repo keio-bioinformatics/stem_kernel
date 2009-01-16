@@ -8,7 +8,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <glob.h>
 #include <boost/program_options.hpp>
 #include <boost/timer.hpp>
 #ifdef HAVE_BOOST_IOSTREAMS
@@ -16,6 +15,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filter/bzip2.hpp>
 #endif
+#include "../common/glob_wrapper.h"
 #include "../common/kernel_matrix.h"
 #include "../libsvm/svm_util.h"
 #ifdef HAVE_MPI
@@ -26,35 +26,15 @@
 namespace io = boost::iostreams;
 #endif
 
-class Glob
-{
-public:
-  typedef std::list<std::string>::const_iterator const_iterator;
-  
-  Glob(const char* pattern, uint flag=0) : path_()
-  {
-    glob_t buf;
-    glob(pattern, flag, NULL, &buf);
-    for (uint i=0; i!=buf.gl_pathc; ++i) {
-      path_.push_back(std::string(buf.gl_pathv[i]));
-    }
-    globfree(&buf);
-  }
-  const_iterator begin() const { return path_.begin(); }
-  const_iterator end() const { return path_.end(); }
-  bool empty() const { return path_.empty(); }
-  
-private:
-  std::list<std::string> path_;
-};
-
 struct Options
 {
   // inputs
   std::vector<std::string> labels;
   std::vector<std::string> files;
+  std::vector<std::string> pf_files;
   std::vector<std::string> ts_labels;
   std::vector<std::string> ts_files;
+  std::vector<std::string> pf_ts_files;
   std::vector<uint> sv_index;
   // outputs
   std::string output;
@@ -64,9 +44,17 @@ struct Options
   // opts
   uint n_th;
   bool normalize;
+  bool use_pf_scale_file;
   bool predict_only;
   uint skip;
   bool predict_mode;
+
+  Options()
+    : labels(), files(), pf_files(), ts_labels(), ts_files(), pf_ts_files(), sv_index(),
+      output(), norm_output(), trained_model_file(), predict_output(),
+      n_th(1), normalize(false), use_pf_scale_file(false),
+      predict_only(false), skip(0), predict_mode(false)
+  {}
 
   void
   add_options(boost::program_options::options_description& opts);
@@ -132,7 +120,10 @@ private:
   {
     bool res=false;
     ExampleSet ex;
-    res=load_examples(ex, opts_.labels, opts_.files);
+    if (opts_.use_pf_scale_file)
+      res=load_examples(ex, opts_.labels, opts_.files, opts_.pf_files);
+    else
+      res=load_examples(ex, opts_.labels, opts_.files);
     if (!res) return false;
     
     KernelMatrix<value_type> matrix;
@@ -175,7 +166,10 @@ private:
   {
     bool res=false;
     ExampleSet ex;
-    res=load_examples(ex, opts_.labels, opts_.files);
+    if (opts_.use_pf_scale_file)
+      res=load_examples(ex, opts_.labels, opts_.files, opts_.pf_files);
+    else
+      res=load_examples(ex, opts_.labels, opts_.files);
     if (!res) return false;
     
 #ifdef HAVE_MPI
@@ -243,9 +237,30 @@ private:
 	throw os.str().c_str();
 	//return false;
       }
+      Glob pf_glob;
+      if (opts_.use_pf_scale_file) {
+	pf_glob.expand(opts_.pf_ts_files[i].c_str());
+	if (pf_glob.empty()) {
+	  std::ostringstream os;
+	  os << opts_.pf_ts_files[i] << ": no matches found";
+	  throw os.str().c_str();
+	  //return false;
+	}
+	if (pf_glob.size() != glob.size()) {
+	  std::ostringstream os;
+	  os << opts_.pf_ts_files[i] << ": the number of matched files is inconsistent";
+	  throw os.str().c_str();
+	  //return false;
+	}
+      }
       Glob::const_iterator p;
+      Glob::const_iterator q=pf_glob.begin();
       for (p=glob.begin(); p!=glob.end(); ++p) {
-	typename LDF::Loader* loader=ldf_.get_loader(p->c_str());
+	typename LDF::Loader* loader = NULL;
+	if (opts_.use_pf_scale_file)
+	  loader = ldf_.get_loader(p->c_str(), (q++)->c_str());
+	else
+	  loader = ldf_.get_loader(p->c_str());
 	if (loader==NULL) return false;
 	
 	while (true) {
@@ -305,6 +320,63 @@ private:
       for (p=glob.begin(); p!=glob.end(); ++p) {
 	double elapsed = 0.0;
 	typename LDF::Loader* loader=ldf_.get_loader(p->c_str());
+	if (loader==NULL) return false;
+#ifdef HAVE_MPI
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+#endif
+	  std::cout << "loading " << *p
+		    << " as label " << labels[i] << std::flush;
+#ifdef HAVE_MPI
+	}
+#endif
+	while (true) {
+	  boost::timer tm;
+	  Data* d = loader->get();
+	  elapsed += tm.elapsed();
+	  if (d==NULL) break;
+	  ex.push_back(std::make_pair(labels[i], *d));
+	  delete d;
+	}
+#ifdef HAVE_MPI
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+#endif
+	  std::cout << " (" << elapsed << "s) done." << std::endl;
+#ifdef HAVE_MPI
+	}
+#endif
+	delete loader;
+      }
+    }
+    return true;
+  }
+
+  bool load_examples(ExampleSet& ex,
+		     const std::vector<std::string>& labels,
+		     const std::vector<std::string>& files,
+		     const std::vector<std::string>& pf_files) const
+  {
+    assert(labels.size()==files.size());
+    assert(labels.size()==pf_files.size());
+    for (uint i=0; i!=files.size(); ++i) {
+      Glob glob(files[i].c_str());
+      Glob pf_glob(pf_files[i].c_str());
+      if (glob.empty()) {
+	std::ostringstream os;
+	os << files[i] << ": no matches found";
+	throw os.str().c_str();
+	//return false;
+      }
+      if (pf_glob.empty()) {
+	std::ostringstream os;
+	os << pf_files[i] << ": no matches found";
+	throw os.str().c_str();
+	//return false;
+      }
+      Glob::const_iterator p, q;
+      for (p=glob.begin(), q=pf_glob.begin();
+	   p!=glob.end() && q!=pf_glob.end(); ++p, ++q) {
+	double elapsed = 0.0;
+	typename LDF::Loader* loader=ldf_.get_loader(p->c_str(), q->c_str());
 	if (loader==NULL) return false;
 #ifdef HAVE_MPI
 	if (MPI::COMM_WORLD.Get_rank()==0) {

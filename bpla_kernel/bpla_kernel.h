@@ -7,12 +7,14 @@
 #include <vector>
 #include <cmath>
 #include "data.h"
+#include "../optimizer/gradient.h"
 
-template < class ValueType, class Data >
+template < class ValueType, class DataT >
 class BPLAKernel
 {
 public:
   typedef ValueType value_type;
+  typedef DataT Data;
   
 public:
   BPLAKernel(bool noBP, value_type gap=1,value_type ext=1,
@@ -21,6 +23,11 @@ public:
   {}
 
   value_type operator()(const Data& xx, const Data& yy) const;
+
+  static
+  value_type compute_gradients(const Data& xx, const Data& yy,
+			       const std::vector<double>& param,
+			       std::vector<double>& d);
 
 private:
   bool noBP_;

@@ -151,4 +151,228 @@ operator()(const Data& x, const Data& y) const
     return local_alignment(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(alpha_));
 }
 
+
+enum { M=0, IX=1, IY=2, LX=3, LY=4, RX=5, RY=6, N=7 };
+
+template < class ValueType, class Data, class Table >
+ValueType
+BPLA_Forward(const Data& x, const Data& y,
+	     const std::vector<double>& param, Table& T)
+{
+  assert(T.size()==N);
+  LAScore<ValueType, Data> la_score;
+  ValueType alpha = param[0];
+  ValueType beta = param[1];
+  ValueType gap = param[2];
+  ValueType ext = param[3];
+  ValueType beta_gap = exp(beta*gap);
+  ValueType beta_ext = exp(beta*ext);
+
+  std::fill(T.data(), T.data()+T.num_elements(), 0.0);
+  T[M][0][0]=1;
+  T[LX][0][0]=1;
+  T[LY][0][0]=1;
+  
+  for (uint i=1; i!=x.size()+1; ++i) {
+    T[LX][i][0]+=T[LX][i-1][0];
+  }
+
+  for (uint j=1; j!=y.size()+1; ++j) {
+    T[LY][0][j]+=T[LY][0][j-1];
+  }
+
+  for (uint i=1; i!= x.size()+1; ++i) {
+    for (uint j=1; j!= y.size()+1; ++j) {
+      ValueType s =
+	alpha * (x.p_right[i-1]*y.p_right[j-1] + x.p_left[i-1] * y.p_left[j-1])
+	+ x.p_unpair[i-1]*y.p_unpair[j-1] * la_score(x, y, i-1, j-1);
+      ValueType beta_s = exp(beta * s);
+      T[M][i][j] += beta_s*T[M][i-1][j-1];
+      T[M][i][j] += beta_s*T[IX][i-1][j-1];
+      T[M][i][j] += beta_s*T[IY][i-1][j-1];
+      T[M][i][j] += beta_s*T[LX][i-1][j-1];
+      T[M][i][j] += beta_s*T[LY][i-1][j-1];
+
+      T[IX][i][j] += beta_gap*T[M][i-1][j];
+      T[IX][i][j] += beta_ext*T[IX][i-1][j];
+
+      T[IY][i][j] += beta_gap*T[M][i][j-1];
+      T[IY][i][j] += beta_gap*T[IX][i][j-1];
+      T[IY][i][j] += beta_ext*T[IY][i][j-1];
+
+      T[LX][i][j] += T[LX][i-1][0];
+
+      T[LY][i][j] += T[LX][i][j-1];
+      T[LY][i][j] += T[LY][i][j-1];
+
+      T[RX][i][j] += T[M][i-1][j];
+      T[RX][i][j] += T[RX][i-1][j];
+
+      T[RY][i][j] += T[M][i][j-1];
+      T[RY][i][j] += T[RX][i][j-1];
+      T[RY][i][j] += T[RY][i][j-1];
+    }
+  }
+
+  return 1+T[M][x.size()][y.size()]
+    +T[RX][x.size()][y.size()]+T[RY][x.size()][y.size()];
+}
+
+template < class ValueType, class Data, class Table >
+ValueType
+BPLA_Backward(const Data& x, const Data& y,
+	      const std::vector<double>& param, Table& T)
+{
+  assert(T.size()==N);
+  LAScore<ValueType, Data> la_score;
+  ValueType alpha = param[0];
+  ValueType beta = param[1];
+  ValueType gap = param[2];
+  ValueType ext = param[3];
+  ValueType beta_gap = exp(beta*gap);
+  ValueType beta_ext = exp(beta*ext);
+
+  std::fill(T.data(), T.data()+T.num_elements(), 0.0);
+  T[M][x.size()][y.size()]=1;
+  T[RX][x.size()][y.size()]=1;
+  T[RY][x.size()][y.size()]=1;
+  
+  for (uint i=x.size(); i!=0; --i) {
+    for (uint j=y.size(); j!=0; --j) {
+      ValueType s =
+	alpha * (x.p_right[i-1]*y.p_right[j-1] + x.p_left[i-1] * y.p_left[j-1])
+	+ x.p_unpair[i-1]*y.p_unpair[j-1] * la_score(x, y, i-1, j-1);
+      ValueType beta_s = exp(beta * s);
+      T[M][i-1][j-1] += beta_s*T[M][i][j] ;
+      T[IX][i-1][j-1] += beta_s*T[M][i][j];
+      T[IY][i-1][j-1] += beta_s*T[M][i][j];
+      T[LX][i-1][j-1] += beta_s*T[M][i][j];
+      T[LY][i-1][j-1] += beta_s*T[M][i][j];
+
+      T[M][i-1][j] += beta_gap*T[IX][i][j];
+      T[IX][i-1][j] += beta_ext*T[IX][i][j];
+
+      T[M][i][j-1] += beta_gap*T[IY][i][j];
+      T[IX][i][j-1] += beta_gap*T[IY][i][j];
+      T[IY][i][j-1] += beta_ext*T[IY][i][j];
+
+      T[LX][i-1][0] += T[LX][i][j];
+
+      T[LX][i][j-1] += T[LY][i][j];
+      T[LY][i][j-1] += T[LY][i][j];
+
+      T[M][i-1][j] += T[RX][i][j];
+      T[RX][i-1][j] += T[RX][i][j];
+
+      T[M][i][j-1] += T[RY][i][j];
+      T[RX][i][j-1] += T[RY][i][j];
+      T[RY][i][j-1] += T[RY][i][j];
+    }
+  }
+
+  for (uint i=x.size(); i!=0; --i) {
+    T[LX][i-1][0]+=T[LX][i][0];
+  }
+
+  for (uint j=y.size(); j!=0; --j) {
+    T[LY][0][j-1]+=T[LY][0][j];
+  }
+
+  return 1+T[M][0][0]+T[LX][0][0]+T[LY][0][0];
+}
+
+template < class V >
+inline
+void
+update_alpha_beta(double& d_a, double& d_b, V a, V b, V w_pair, V w_unpair, V v)
+{
+  d_a += b*w_pair*v;
+  d_b += (a*w_pair+w_unpair)*v;
+}
+
+template < class V >
+inline
+void
+update_beta_gap_ext(double& d_b, double& d_ge, V b, V ge, V v)
+{
+  d_b  += ge*v;
+  d_ge +=  b*v;
+}
+  
+template < class ValueType, class Data, class Table >
+ValueType
+BPLA_ForwardBackword(const Data& x, const Data& y,
+		     const std::vector<double>& param,
+		     const Table& F, const Table& B,
+		     std::vector<double>& d)
+{
+  assert(F.size()==N);
+  assert(B.size()==N);
+  LAScore<ValueType, Data> la_score;
+  ValueType alpha = param[0];
+  ValueType beta = param[1];
+  ValueType gap = param[2];
+  ValueType ext = param[3];
+  ValueType beta_gap = exp(beta*gap);
+  ValueType beta_ext = exp(beta*ext);
+
+  assert(d.size()==param.size());
+  double& d_alpha = d[0];
+  double& d_beta = d[1];
+  double& d_gap = d[2];
+  double& d_ext = d[3];
+
+  for (uint i=1; i!= x.size()+1; ++i) {
+    for (uint j=1; j!= y.size()+1; ++j) {
+      ValueType w_pair=x.p_right[i-1]*y.p_right[j-1] + x.p_left[i-1] * y.p_left[j-1];
+      ValueType w_unpair=x.p_unpair[i-1]*y.p_unpair[j-1] * la_score(x, y, i-1, j-1);
+      ValueType beta_s = exp(beta * (alpha * w_pair + w_unpair));
+      
+      update_alpha_beta(d_alpha, d_beta, alpha, beta, w_pair, w_unpair,
+			F[M][i-1][j-1]*beta_s*B[M][i][j]);
+      update_alpha_beta(d_alpha, d_beta, alpha, beta, w_pair, w_unpair,
+			F[IX][i-1][j-1]*beta_s*B[M][i][j]);
+      update_alpha_beta(d_alpha, d_beta, alpha, beta, w_pair, w_unpair,
+			F[IY][i-1][j-1]*beta_s*B[M][i][j]);
+      update_alpha_beta(d_alpha, d_beta, alpha, beta, w_pair, w_unpair,
+			F[LX][i-1][j-1]*beta_s*B[M][i][j]);
+      update_alpha_beta(d_alpha, d_beta, alpha, beta, w_pair, w_unpair,
+			F[LY][i-1][j-1]*beta_s*B[M][i][j]);
+
+      update_beta_gap_ext(d_beta, d_gap, beta, gap, 
+			  F[M][i-1][j]*beta_gap*B[IX][i][j]);
+      update_beta_gap_ext(d_beta, d_ext, beta, ext, 
+			  F[IX][i-1][j]*beta_ext*B[IX][i][j]);
+
+      update_beta_gap_ext(d_beta, d_gap, beta, gap, 
+			  F[M][i][j-1]*beta_gap*B[IY][i][j]);
+      update_beta_gap_ext(d_beta, d_gap, beta, gap, 
+			  F[IX][i][j-1]*beta_gap*B[IY][i][j]);
+      update_beta_gap_ext(d_beta, d_ext, beta, ext, 
+			  F[IY][i][j-1]*beta_ext*B[IY][i][j]);
+    }
+  }
+
+  return 1+F[M][x.size()][y.size()]
+    +F[RX][x.size()][y.size()]+F[RY][x.size()][y.size()];
+}
+
+// static
+template < class ValueType, class Data >
+ValueType
+BPLAKernel<ValueType,Data>::
+compute_gradients(const Data& x, const Data& y,
+		  const std::vector<double>& param,
+		  std::vector<double>& d)
+{
+  std::fill(d.begin(), d.end(), 0.0);
+  typedef boost::multi_array<ValueType,3> dp_type;
+  dp_type F(boost::extents[N][x.size()+1][y.size()+1]);
+  dp_type B(boost::extents[N][x.size()+1][y.size()+1]);
+  BPLA_Forward<ValueType,Data,dp_type>(x, y, param, F);
+  BPLA_Backward<ValueType,Data,dp_type>(x, y, param, B);
+  return BPLA_ForwardBackword<ValueType,Data,dp_type>(x, y, param, F, B, d);
+}
+
+// instatiation
 template class BPLAKernel<double,MData>;

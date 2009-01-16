@@ -5,7 +5,7 @@
 
 #include <vector>
 #include <boost/spirit/iterator/file_iterator.hpp>
-#include "bpmatrix.h" // for definitions folding methods
+#include "../common/bpmatrix.h" // for definitions folding methods
 #include "../common/profile.h"
 namespace Vienna {
   extern "C" {
@@ -25,7 +25,7 @@ struct Data
 
   Data() : seq(), p_left(), p_right(), p_unpair() { }
 
-  Data(const IS& seq, const BPMatrix::Options& opts);
+  Data(const IS& seq, float pf_scale, const BPMatrix::Options& opts);
 
   Data(const IS& seq);
 
@@ -51,6 +51,7 @@ public:
 	     const BPMatrix::Options& bp_opts, bool use_bp)
   {
   }
+  ~DataLoader();
 
   Data* get() { return NULL; }
 
@@ -66,6 +67,9 @@ public:
 public:
   DataLoader(const char* filename,
 	     const BPMatrix::Options& bp_opts, bool use_bp);
+  DataLoader(const char* filename, const char* pf_scales,
+	     const BPMatrix::Options& bp_opts, bool use_bp);
+  ~DataLoader();
   Data* get();
 
 private:
@@ -74,6 +78,7 @@ private:
   std::string filename_;
   uint type_;
   boost::spirit::file_iterator<> fi_;
+  std::ifstream* pf_is_;
 };
 
 template < >
@@ -85,6 +90,9 @@ public:
 public:
   DataLoader(const char* filename,
 	     const BPMatrix::Options& bp_opts, bool use_bp);
+  DataLoader(const char* filename, const char* pf_scapes,
+	     const BPMatrix::Options& bp_opts, bool use_bp);
+  ~DataLoader();
   Data* get();
 
 private:
@@ -93,6 +101,7 @@ private:
   std::string filename_;
   uint type_;
   boost::spirit::file_iterator<> fi_;
+  std::ifstream* pf_is_;
 };
 
 template < class LD >
@@ -116,6 +125,11 @@ public:
   Loader* get_loader(const char* filename) const
   {
     return new Loader(filename, bp_opts_, use_bp_);
+  }
+
+  Loader* get_loader(const char* filename, const char* pf_scales) const
+  {
+    return new Loader(filename, pf_scales, bp_opts_, use_bp_);
   }
 
 private:

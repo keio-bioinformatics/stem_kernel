@@ -1,5 +1,8 @@
-bin_PROGRAMS = bpla_kernel
+bin_PROGRAMS = bpla_kernel bpla_optimizer
 
-bpla_kernel_SOURCES = main.cpp bpla_kernel.cpp bpla_kernel.h \
-	data.cpp data.h bpmatrix.cpp bpmatrix.h
-bpla_kernel_LDADD = ../common/libcommon.a ../libsvm/libsvm.a ${BOOST_LIBS}
+bpla_kernel_SOURCES = main.cpp bpla_kernel.cpp bpla_kernel.h data.cpp data.h
+bpla_kernel_LDADD = ../common/libcommon.a ../libsvm/libsvm.a ${LIBCONTRAFOLD} ${BOOST_LIBS}
+
+bpla_optimizer_SOURCES = bpla_optimizer.cpp bpla_kernel.cpp bpla_kernel.h data.cpp data.h
+bpla_optimizer_LDADD = ../common/libcommon.a ../optimizer/liboptimizer.a ../libsvm/libsvm.a \
+	${LIBCONTRAFOLD} ${BOOST_LIBS}

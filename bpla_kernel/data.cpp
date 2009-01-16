@@ -9,7 +9,7 @@
 #include <list>
 #include <sstream>
 #include "data.h"
-#include "bpmatrix.h"
+#include "../common/bpmatrix.h"
 #include "../common/profile.h"
 #include "../common/cyktable.h"
 #include "../common/fa.h"
@@ -20,12 +20,13 @@ template < class IS >
 static
 void
 fill_weight(const IS& s,
+	    float pf_scale,
 	    std::vector<float>& p_l,
 	    std::vector<float>& p_r,
 	    std::vector<float>& p_u,
 	    const BPMatrix::Options& opts)
 {
-  BPMatrix bp(s, opts);
+  BPMatrix bp(s, pf_scale, opts);
   assert(bp.size()==p_l.size());
   assert(bp.size()==p_r.size());
   assert(bp.size()==p_u.size());
@@ -45,13 +46,13 @@ fill_weight(const IS& s,
 
 template < class S, class IS >
 Data<S,IS>::
-Data(const IS& s, const BPMatrix::Options& opts)
+Data(const IS& s, float pf_scale, const BPMatrix::Options& opts)
   : seq(s),
     p_left(s.begin()->size(), 0.0),
     p_right(s.begin()->size(), 0.0),
     p_unpair(s.begin()->size(), 1.0)
 {
-  fill_weight(s, p_left, p_right, p_unpair, opts);
+  fill_weight(s, pf_scale, p_left, p_right, p_unpair, opts);
 }
  
 template < class S, class IS >
@@ -135,7 +136,8 @@ DataLoader(const char* filename,
     use_bp_(use_bp),
     filename_(filename),
     type_(check_filetype(filename)),
-    fi_()
+    fi_(),
+    pf_is_(NULL)
 {
   switch (type_) {
   case TP_FA:
@@ -152,6 +154,41 @@ DataLoader(const char* filename,
     throw os.str().c_str();
     //return false;
   }
+}
+
+DataLoader<MData>::
+DataLoader(const char* filename, const char* pf_scales,
+	   const BPMatrix::Options& bp_opts, bool use_bp)
+  : bp_opts_(bp_opts),
+    use_bp_(use_bp),
+    filename_(filename),
+    type_(check_filetype(filename)),
+    fi_(),
+    pf_is_(NULL)
+{
+  switch (type_) {
+  case TP_FA:
+  case TP_ALN:
+  case TP_MAF:
+    fi_ = boost::spirit::file_iterator<>(filename_);
+    break;
+  default:
+    break;
+  }
+  if (!fi_) {
+    std::ostringstream os;
+    os << filename_ << ": no such file";
+    throw os.str().c_str();
+    //return false;
+  }
+
+  pf_is_ = new std::ifstream(pf_scales);
+}
+
+DataLoader<MData>::
+~DataLoader()
+{
+  if (pf_is_) delete pf_is_;
 }
 
 MData*
@@ -174,6 +211,12 @@ get()
     break;
   }
 
+  float pf_scale = -1;
+  if (pf_is_ && *pf_is_) {
+    *pf_is_ >> pf_scale;
+    //std::cout << pf_scale << std::endl;
+  }
+
   if (ret) {
     std::list<std::string>::const_iterator x;
     uint l=ma.begin()->size();
@@ -182,7 +225,7 @@ get()
     }
   
     if (use_bp_)
-      return new MData(ma, bp_opts_);
+      return new MData(ma, pf_scale, bp_opts_);
     else
       return new MData(ma);
   }
@@ -209,7 +252,7 @@ get_loader(const char* filename) const
 // instantiation
 
 #include <string>
-#include "bpmatrix.h"
+#include "../common/bpmatrix.h"
 #include "../common/rna.h"
 
 #if 0

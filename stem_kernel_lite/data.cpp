@@ -9,7 +9,7 @@
 #include <list>
 #include <sstream>
 #include "data.h"
-#include "bpmatrix.h"
+#include "../common/bpmatrix.h"
 #include "../common/profile.h"
 #include "../common/cyktable.h"
 #include "../common/fa.h"
@@ -323,10 +323,10 @@ fill_weight(std::vector<float>& w, const std::list<Profiler>& prof);
 
 template < class S, class IS, class N >
 Data<S,IS,N>::
-Data(const IS& s, const BPMatrix::Options& opts)
+Data(const IS& s, float th, float pf_scale, const BPMatrix::Options& opts)
   : tree(), seq(s), root(), max_pa(), weight(s.begin()->size())
 {
-  BPMatrix bp(s, opts);
+  BPMatrix bp(s, pf_scale, opts);
   std::list<Profiler> prof;
   typename IS::const_iterator x;
   if (bp.n_matrices()>1) {
@@ -337,7 +337,7 @@ Data(const IS& s, const BPMatrix::Options& opts)
     for (x=s.begin(); x!=s.end(); ++x)
       prof.push_back(Profiler(*x, bp, 1.0));
   }
-  DAGBuilder<N> builder(prof, bp, opts.th);
+  DAGBuilder<N> builder(prof, bp, th);
   builder.build(tree);
   find_root(root, tree);
   find_max_parent(max_pa, tree);
@@ -349,6 +349,47 @@ Data<S,IS,N>::
 Data(const IS& s)
   : tree(), seq(s), root(), max_pa(), weight()
 {
+}
+
+static
+uint
+used_memory_size(const ProfileSequence& v)
+{
+  return sizeof(ProfileSequence)
+    + v.size()*(sizeof(ProfileSequence::Column)+(sizeof(ProfileSequence::value_type)*(N_RNA+1)));
+}
+
+template < class S, class IS, class N >
+uint
+Data<S,IS,N>::
+used_memory_size() const
+{
+  uint mem=0;
+  for (uint i=0; i!=tree.size(); ++i)
+    mem += tree[i].used_memory_size();
+  mem += ::used_memory_size(seq);
+  mem += root.size()*sizeof(uint);
+  mem += max_pa.size()*sizeof(uint);
+  mem += weight.size()*sizeof(float);
+  return mem;
+}
+
+template < class S, class IS, class N >
+uint
+Data<S,IS,N>::
+max_node_size() const
+{
+  std::vector<uint> c(tree.size(), 0);
+  for (uint i=0; i!=max_pa.size(); ++i) {
+    if (max_pa[i]==static_cast<uint>(-1)) {
+      c[i]++;
+    } else {
+      for (uint j=i; j!=max_pa[i]; ++j) {
+	c[j]++;
+      }
+    }
+  }
+  return *std::max_element(c.begin(), c.end());
 }
 
 // helper functions
@@ -438,55 +479,16 @@ check_filetype(const char* f)
 #endif
 }
 
-#if 0
-DataLoader<SData>::
-DataLoader(const char* filename,
-	   const BPMatrix::Options& bp_opts, bool use_bp)
-  : bp_opts_(bp_opts),
-    use_bp_(use_bp),
-    filename_(filename),
-    type_(check_filetype(filename)),
-    fi_(filename)
-{
-  if (!fi_) {
-    std::ostringstream os;
-    os << filename_ << ": no such file";
-    throw os.str().c_str();
-  }
-}
-
-SData*
-DataLoader<SData>::
-get()
-{
-  std::string s;
-  switch (type_) {
-  case TP_FA:
-    if (load_fa(s, fi_)) {
-      if (use_bp_)
-	return new SData(s, bp_opts_);
-      else
-	return new SData(s);
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    return NULL;
-    break;
-  }
-  return NULL;
-}
-#endif
-
 DataLoader<MData>::
-DataLoader(const char* filename,
+DataLoader(const char* filename, float th,
 	   const BPMatrix::Options& bp_opts, bool use_bp)
-  : bp_opts_(bp_opts),
+  : th_(th),
+    bp_opts_(bp_opts),
     use_bp_(use_bp),
     filename_(filename),
     type_(check_filetype(filename)),
-    fi_()
+    fi_(),
+    pf_is_(NULL)
 {
   switch (type_) {
   case TP_FA:
@@ -504,6 +506,43 @@ DataLoader(const char* filename,
     //return false;
   }
 }
+
+DataLoader<MData>::
+DataLoader(const char* filename, float th, const char* pf_scales,
+	   const BPMatrix::Options& bp_opts, bool use_bp)
+  : th_(th),
+    bp_opts_(bp_opts),
+    use_bp_(use_bp),
+    filename_(filename),
+    type_(check_filetype(filename)),
+    fi_(),
+    pf_is_(NULL)
+{
+  switch (type_) {
+  case TP_FA:
+  case TP_ALN:
+  case TP_MAF:
+    fi_ = boost::spirit::file_iterator<>(filename_);
+    break;
+  default:
+    break;
+  }
+  if (!fi_) {
+    std::ostringstream os;
+    os << filename_ << ": no such file";
+    throw os.str().c_str();
+    //return false;
+  }
+
+  pf_is_ = new std::ifstream(pf_scales);
+}
+
+DataLoader<MData>::
+~DataLoader()
+{
+  if (pf_is_) delete pf_is_;
+}
+
 
 MData*
 DataLoader<MData>::
@@ -525,48 +564,32 @@ get()
     break;
   }
 
+  float pf_scale = -1;
+  if (pf_is_ && *pf_is_) {
+    *pf_is_ >> pf_scale;
+    //std::cout << pf_scale << std::endl;
+  }
+
   if (ret) {
     std::list<std::string>::const_iterator x;
     uint l=ma.begin()->size();
     for (x=ma.begin(); x!=ma.end(); ++x) {
       if (l!=x->size()) throw "wrong alignment";
     }
-  
+
     if (use_bp_)
-      return new MData(ma, bp_opts_);
+      return new MData(ma, th_, pf_scale, bp_opts_);
     else
       return new MData(ma);
   }
   return NULL;
 }
 
-#if 0
-DataLoader<SData>*
-DataLoaderFactory< DataLoader<SData> >::
-get_loader(const char* filename) const
-{
-  switch (check_filetype(filename)) {
-  case TP_FA:
-    return new DataLoader<SData>(filename, bp_opts_, use_bp_);
-    break;
-  default:
-    return NULL;
-    break;
-  }
-  return NULL;
-}
-#endif
-
 // instantiation
 
 #include <string>
-#include "bpmatrix.h"
+#include "../common/bpmatrix.h"
 #include "../common/rna.h"
-
-#if 0
-template
-class Data<ProfileSequence, std::string>;
-#endif
 
 template
 class Data<ProfileSequence, std::list<std::string> >;

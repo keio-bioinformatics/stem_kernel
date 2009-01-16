@@ -12,24 +12,26 @@
 
 class BPMatrix {
 public:
-  enum { FOLD, LFOLD, SFOLD, ALIFOLD }; // available methods
+  enum { FOLD, LFOLD, SFOLD, ALIFOLD, CONTRAFOLD }; // available methods
 
   struct Options
   {
     bool alifold;
+    bool contrafold;
     bool no_GU;
     bool no_closingGU;
     bool no_LonelyPairs;
-    float th;
     uint n_samples;
-
+    bool use_pf_scale_mfe;
+    
     Options()
       : alifold(false),
+        contrafold(false),
 	no_GU(false),
 	no_closingGU(false),
 	no_LonelyPairs(false),
-	th(0.01),
-	n_samples(0)
+	n_samples(0),
+        use_pf_scale_mfe(false)
     {}
     void add_options(boost::program_options::options_description& desc);
     uint method() const;
@@ -42,8 +44,12 @@ public:
   
 public:
   BPMatrix(const std::string& s, const Options& opts);
+  
+  BPMatrix(const std::string& s, float pf_scale, const Options& opts);
 
   BPMatrix(const std::list<std::string>& ma, const Options& opts);
+  
+  BPMatrix(const std::list<std::string>& ma, float pf_scale, const Options& opts);
 
   double operator()(uint i, uint j) const
   {
