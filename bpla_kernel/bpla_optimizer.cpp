@@ -5,11 +5,11 @@
 #endif
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cassert>
 #include <boost/program_options.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <boost/bind.hpp>
 #include <boost/timer.hpp>
 #include "../common/glob_wrapper.h"
 #include "data.h"
@@ -20,10 +20,34 @@
 #include <mpi.h>
 #endif
 
-using namespace boost::lambda;
 namespace po = boost::program_options;
 
 static std::ostream* os=&std::cout;
+
+float default_score_table[4][4]={
+  /* A         C          G          U       */
+  { 5.846613, -1.860000, -1.460000, -1.390000}, // A
+  {-1.860000,  4.786613, -2.480000, -1.050000}, // C
+  {-1.460000, -2.480000,  4.656613, -1.740000}, // G
+  {-1.390000, -1.050000, -1.740000,  5.276613}, // U
+};
+
+boost::multi_array<double,2> score_table;
+
+template <class T>
+bool
+read_score_table(boost::multi_array<T,2>& score_table, const std::string& filename)
+{
+  
+  std::ifstream in(filename.c_str());
+  if (in.fail()) { perror(filename.c_str()); return false; }
+  std::string a, b;
+  float v;
+  while (in >> a >> b >> v) {
+    score_table[char2rna(a[0])][char2rna(b[0])] = v;
+  }
+  return true;
+}
 
 template < class DataT >
 class CalcMatrix
@@ -50,7 +74,7 @@ public:
 	if (c++ % n_proc == rank) {
 	  std::vector<double> g(param.size());
 	  k_l[n] = BPLAKernel<double,MData>::
-	    compute_gradients(data[i], data[j], param, g);
+	    compute_gradients(data[i], data[j], score_table, param, g);
 	  for (uint l=0; l!=g.size(); ++l) g_l[l][n] = g[l];
 	  ++n;
 	}
@@ -87,7 +111,7 @@ public:
     for (uint i=0; i!=data.size(); ++i) {
       for (uint j=i; j!=data.size(); ++j) {
 	k = BPLAKernel<double,MData>::
-	  compute_gradients(data[i], data[j], param, g);
+	  compute_gradients(data[i], data[j], score_table, param, g);
 	kmat[i][j] = kmat[j][i] = k;
 	for (uint l=0; l!=g.size(); ++l)
 	  gmat[l][i][j] = gmat[l][j][i] = g[l];
@@ -124,7 +148,7 @@ public:
       if (i % n_proc == rank) {
 	std::vector<double> g(param.size());
 	diag_k_l[n] = BPLAKernel<double,MData>::
-	  compute_gradients(data[i], data[i], param, g);
+	  compute_gradients(data[i], data[i], score_table, param, g);
 	for (uint l=0; l!=g.size(); ++l) diag_g_l[l][n] = g[l];
 	++n;
       }
@@ -160,7 +184,7 @@ public:
 	  std::vector<double> g(param.size());
 	  double k;
 	  k = BPLAKernel<double,MData>::
-	    compute_gradients(data[i], data[j], param, g);
+	    compute_gradients(data[i], data[j], score_table, param, g);
 	  double sq_ij = sqrt(diag_k[i]*diag_k[j]);
 	  k_l[n] = k/sq_ij;
 	  for (uint l=0; l!=g.size(); ++l) {
@@ -206,7 +230,7 @@ public:
     boost::multi_array<double,2> diag_g(boost::extents[param.size()][data.size()]);
     for (uint i=0; i!=data.size(); ++i) {
       diag_k[i] = BPLAKernel<double,MData>::
-	compute_gradients(data[i], data[i], param, g);
+	compute_gradients(data[i], data[i], score_table, param, g);
       for (uint l=0; l!=g.size(); ++l) diag_g[l][i] = g[l];
     }
 
@@ -217,7 +241,7 @@ public:
     for (uint i=0; i!=data.size()-1; ++i) {
       for (uint j=i+1; j!=data.size(); ++j) {
 	k = BPLAKernel<double,MData>::
-	  compute_gradients(data[i], data[j], param, g);
+	  compute_gradients(data[i], data[j], score_table, param, g);
 	double sq_ij = sqrt(diag_k[i]*diag_k[j]);
 	kmat[i][j] = kmat[j][i] = k/sq_ij;
 	for (uint l=0; l!=g.size(); ++l) {
@@ -305,6 +329,7 @@ main(int argc, char** argv)
   float ext;
   double C;
   uint fold;
+  std::string score_file;
 
   // parse command line options
   po::options_description desc("Options");
@@ -327,7 +352,8 @@ main(int argc, char** argv)
     ("gap,g", po::value<float>(&gap)->default_value(-8.0), "set gap weight")
     ("ext,e", po::value<float>(&ext)->default_value(-0.75), "set extension weight")
     ("alpha,a", po::value<float>(&alpha)->default_value(4.5), "set alpha")
-    ("beta,b", po::value<float>(&beta)->default_value(0.11), "set beta");
+    ("beta,b", po::value<float>(&beta)->default_value(0.11), "set beta")
+    ("score", po::value<std::string>(&score_file), "specify the score table file");
   
   desc.add(k_desc).add(f_desc);
   po::variables_map vm;
@@ -338,7 +364,7 @@ main(int argc, char** argv)
     collect_unrecognized(parsed.options, po::include_positional);
   std::vector<po::option>::iterator new_end =
     std::remove_if(parsed.options.begin(), parsed.options.end(),
-		   bind(&po::option::unregistered, _1) );
+		   boost::bind(&po::option::unregistered, _1) );
   parsed.options.erase(new_end, parsed.options.end());
   po::store(parsed, vm);
   po::notify(vm);
@@ -366,6 +392,18 @@ main(int argc, char** argv)
       label_names[n]=extra_args[i];
       files[n]=extra_args[i+1];
       ++n;
+    }
+  }
+
+  
+  score_table.resize(boost::extents[N_RNA][N_RNA]);
+  if (!score_file.empty()) {
+    read_score_table(score_table, score_file);
+  } else {
+    for (uint i=0; i!=N_RNA; ++i) {
+      for (uint j=0; j!=N_RNA; ++j) {
+        score_table[i][j] = default_score_table[i][j];
+      }
     }
   }
 

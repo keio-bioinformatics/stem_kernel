@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <boost/multi_array.hpp>
 #include "data.h"
 #include "../optimizer/gradient.h"
 
@@ -17,19 +18,23 @@ public:
   typedef DataT Data;
   
 public:
-  BPLAKernel(bool noBP, value_type gap=1,value_type ext=1,
+  BPLAKernel(const boost::multi_array<value_type,2>& score_table,
+             bool noBP, value_type gap=1,value_type ext=1,
 	     value_type alpha=1,value_type beta=1) 
-    : noBP_(noBP), gap_(gap), ext_(ext), alpha_(alpha), beta_(beta)
+    : score_table_(score_table),
+      noBP_(noBP), gap_(gap), ext_(ext), alpha_(alpha), beta_(beta)
   {}
 
   value_type operator()(const Data& xx, const Data& yy) const;
 
   static
   value_type compute_gradients(const Data& xx, const Data& yy,
+                               const boost::multi_array<value_type,2>& score_table,
 			       const std::vector<double>& param,
 			       std::vector<double>& d);
 
 private:
+  const boost::multi_array<value_type,2>& score_table_;
   bool noBP_;
   value_type gap_;
   value_type ext_;

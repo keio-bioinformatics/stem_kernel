@@ -90,7 +90,7 @@ public:
 public:
   DataLoader(const char* filename,
 	     const BPMatrix::Options& bp_opts, bool use_bp);
-  DataLoader(const char* filename, const char* pf_scapes,
+  DataLoader(const char* filename, const char* pf_scales,
 	     const BPMatrix::Options& bp_opts, bool use_bp);
   ~DataLoader();
   Data* get();

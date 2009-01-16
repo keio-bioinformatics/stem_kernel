@@ -10,48 +10,13 @@
 #include <cmath>
 #include <boost/multi_array.hpp>
 #include "bpla_kernel.h"
-#include "../common/pf_wrapper.h"
-
-double RIBOSUM[5][5]={
-  /* A    C      G      U       N */
-  { 2.22, -1.86, -1.46, -1.39,  0}, //A
-  {-1.86,  1.16, -2.48, -1.05,  0}, //C
-  {-1.46, -2.48,  1.03, -1.74,  0}, //G
-  {-1.39, -1.05, -1.74,  1.65,  0}, //U
-  {    0,     0,     0,     0,  0}, //N
-};
-
-double RIBOSUM2[5][5]={
-  /* A    C      G      U       N */
-  { 5.846613, -1.860000, -1.460000, -1.390000, 0},
-  {-1.860000,  4.786613, -2.480000, -1.050000, 0},
-  {-1.460000, -2.480000,  4.656613, -1.740000, 0},
-  {-1.390000, -1.050000, -1.740000,  5.276613, 0},
-  { 0.000000,  0.000000,  0.000000,  0.000000, 0},
-};
-
-double CRF[5][5]={
-  /* A    C      G      U       N */
-  { 0.67, -1.11, -1.02, -1.17,  0.51}, //A
-  {-1.11, -0.44, -1.96, -1.30,  0.19}, //C
-  {-1.02, -1.96, -0.52, -2.03,  0.22}, //G
-  {-1.17, -1.30, -2.03, -0.68,  0.25}, //U
-  { 0.51,  0.19,  0.22,   0.25,    0}, //N
-};
-
-double SIMPLE[5][5]={
-/* A C G U N */
-  {1,0,0,0,0},//A
-  {0,1,0,0,0},//C
-  {0,0,1,0,0},//G
-  {0,0,0,1,0},//U
-  {0,0,0,0,0} //N
-};
 
 template < class ValueType, class Data >
 struct LAScore
 {
-  LAScore() { }
+  LAScore(const boost::multi_array<ValueType,2>& score_table)
+    : score_table_(score_table)
+  { }
 
   inline
   ValueType
@@ -64,17 +29,20 @@ struct LAScore
       for (uint l=0; l!=N_RNA; ++l) {
 	if (y.seq[j][l]==0) continue;
 	n += x.seq[i][k]*y.seq[j][l];
-	v += RIBOSUM2[k][l]*x.seq[i][k]*y.seq[j][l];
+	v += score_table_[k][l]*x.seq[i][k]*y.seq[j][l];
       }
     }
     return n==0 ? 0.0 : v/n;
   }
+
+  const boost::multi_array<ValueType,2>& score_table_;
 };
 
 template < class ValueType, class Data >
 struct BPLAScore : public LAScore<ValueType,Data>
 {
-  BPLAScore(ValueType alpha) : LAScore<ValueType,Data>(), alpha_(alpha) { }
+  BPLAScore(const boost::multi_array<ValueType,2>& score_table, ValueType alpha)
+    : LAScore<ValueType,Data>(score_table), alpha_(alpha) { }
 
   inline
   ValueType
@@ -146,9 +114,9 @@ BPLAKernel<ValueType,Data>::
 operator()(const Data& x, const Data& y) const
 {
   if (noBP_)
-    return local_alignment(x, y, beta_, gap_, ext_, LAScore<ValueType,Data>());
+    return local_alignment(x, y, beta_, gap_, ext_, LAScore<ValueType,Data>(score_table_));
   else
-    return local_alignment(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(alpha_));
+    return local_alignment(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(score_table_, alpha_));
 }
 
 
@@ -157,10 +125,11 @@ enum { M=0, IX=1, IY=2, LX=3, LY=4, RX=5, RY=6, N=7 };
 template < class ValueType, class Data, class Table >
 ValueType
 BPLA_Forward(const Data& x, const Data& y,
+             const boost::multi_array<ValueType,2>& score_table,
 	     const std::vector<double>& param, Table& T)
 {
   assert(T.size()==N);
-  LAScore<ValueType, Data> la_score;
+  LAScore<ValueType, Data> la_score(score_table);
   ValueType alpha = param[0];
   ValueType beta = param[1];
   ValueType gap = param[2];
@@ -221,10 +190,11 @@ BPLA_Forward(const Data& x, const Data& y,
 template < class ValueType, class Data, class Table >
 ValueType
 BPLA_Backward(const Data& x, const Data& y,
+              const boost::multi_array<ValueType,2>& score_table,
 	      const std::vector<double>& param, Table& T)
 {
   assert(T.size()==N);
-  LAScore<ValueType, Data> la_score;
+  LAScore<ValueType, Data> la_score(score_table);
   ValueType alpha = param[0];
   ValueType beta = param[1];
   ValueType gap = param[2];
@@ -302,13 +272,14 @@ update_beta_gap_ext(double& d_b, double& d_ge, V b, V ge, V v)
 template < class ValueType, class Data, class Table >
 ValueType
 BPLA_ForwardBackword(const Data& x, const Data& y,
+                     const boost::multi_array<ValueType,2>& score_table,
 		     const std::vector<double>& param,
 		     const Table& F, const Table& B,
 		     std::vector<double>& d)
 {
   assert(F.size()==N);
   assert(B.size()==N);
-  LAScore<ValueType, Data> la_score;
+  LAScore<ValueType, Data> la_score(score_table);
   ValueType alpha = param[0];
   ValueType beta = param[1];
   ValueType gap = param[2];
@@ -362,6 +333,7 @@ template < class ValueType, class Data >
 ValueType
 BPLAKernel<ValueType,Data>::
 compute_gradients(const Data& x, const Data& y,
+                  const boost::multi_array<value_type,2>& score_table,
 		  const std::vector<double>& param,
 		  std::vector<double>& d)
 {
@@ -369,9 +341,9 @@ compute_gradients(const Data& x, const Data& y,
   typedef boost::multi_array<ValueType,3> dp_type;
   dp_type F(boost::extents[N][x.size()+1][y.size()+1]);
   dp_type B(boost::extents[N][x.size()+1][y.size()+1]);
-  BPLA_Forward<ValueType,Data,dp_type>(x, y, param, F);
-  BPLA_Backward<ValueType,Data,dp_type>(x, y, param, B);
-  return BPLA_ForwardBackword<ValueType,Data,dp_type>(x, y, param, F, B, d);
+  BPLA_Forward<ValueType,Data,dp_type>(x, y, score_table, param, F);
+  BPLA_Backward<ValueType,Data,dp_type>(x, y, score_table, param, B);
+  return BPLA_ForwardBackword<ValueType,Data,dp_type>(x, y, score_table, param, F, B, d);
 }
 
 // instatiation
