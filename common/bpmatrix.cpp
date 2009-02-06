@@ -380,7 +380,11 @@ make_bp_matrix(BPMatrix& bp, const std::list<std::string>& ma, float pf_scale,
 	Vienna::pf_scale = pf_scale;
       }
       // build a base pair probablity matrix
+#ifdef HAVE_VIENNA18
+      Vienna::plist* pi;
+#else
       Vienna::pair_info* pi;
+#endif
       Vienna::alipf_fold(seqs, NULL, &pi);
       for (uint k=0; pi[k].i!=0; ++k)
 	bp(pi[k].i, pi[k].j) = pi[k].p;
