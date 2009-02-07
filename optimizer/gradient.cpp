@@ -177,6 +177,7 @@ compute_delta(const std::vector<double>& dec_values,
 
   double avg, var;
   calculate_avg_var(d, avg, var);
+  if (var<1e-10) var=1e-10;
   double rho = sqrt(var);
   double s  = SIGMOID_CONST/rho;
   double s2 = -SIGMOID_CONST/(d.size()*rho*var);
