@@ -22,6 +22,8 @@
 #include <mpi.h>
 #endif
 
+typedef unsigned int uint;
+
 #ifdef HAVE_BOOST_IOSTREAMS
 namespace io = boost::iostreams;
 #endif

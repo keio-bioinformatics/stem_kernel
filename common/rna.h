@@ -7,6 +7,8 @@
 #include <deque>
 #include <string>
 
+typedef unsigned int uint;
+
 enum {
   RNA_A = 0,
   RNA_C = 1,

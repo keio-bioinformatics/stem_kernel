@@ -7,10 +7,19 @@
 #include <list>
 #include <string>
 #include <sstream>
-#include <boost/spirit.hpp>
 #include <boost/lambda/lambda.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 103800
+#include <boost/spirit/include/classic.hpp>
+#else
+#include <boost/spirit.hpp>
+#endif
 
-using namespace boost::spirit;
+#ifndef BOOST_SPIRIT_CLASSIC_NS
+#define BOOST_SPIRIT_CLASSIC_NS boost::spirit
+#endif
+
+using namespace BOOST_SPIRIT_CLASSIC_NS;
 using namespace boost::lambda;
 
 struct model_parser : public grammar< model_parser >

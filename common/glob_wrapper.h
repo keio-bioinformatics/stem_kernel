@@ -6,6 +6,8 @@
 #include <glob.h>
 #include <list>
 
+typedef unsigned int uint;
+
 class Glob
 {
 public:

@@ -460,7 +460,7 @@ uint
 check_filetype(const char* f)
 {
 #if 0  
-  boost::spirit::file_iterator<> fi(f);
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi(f);
   std::string s;
   MASequence<std::string> ma;
   if (load_fa(s, fi)) return TP_FA;
@@ -494,7 +494,7 @@ DataLoader(const char* filename, float th,
   case TP_FA:
   case TP_ALN:
   case TP_MAF:
-    fi_ = boost::spirit::file_iterator<>(filename_);
+    fi_ = BOOST_SPIRIT_CLASSIC_NS::file_iterator<>(filename_);
     break;
   default:
     break;
@@ -522,7 +522,7 @@ DataLoader(const char* filename, float th, const char* pf_scales,
   case TP_FA:
   case TP_ALN:
   case TP_MAF:
-    fi_ = boost::spirit::file_iterator<>(filename_);
+    fi_ = BOOST_SPIRIT_CLASSIC_NS::file_iterator<>(filename_);
     break;
   default:
     break;

@@ -7,11 +7,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/utility/confix.hpp>
-#include <boost/spirit/iterator/file_iterator.hpp>
 
-using namespace boost::spirit;
+using namespace BOOST_SPIRIT_CLASSIC_NS;
 
 template < class Seq >
 struct fa_parser : public grammar< fa_parser<Seq> >

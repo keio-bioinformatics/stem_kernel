@@ -5,6 +5,8 @@
 
 #include <string>
 
+typedef unsigned int uint;
+
 template < class ValueType >
 class StringKernel
 {

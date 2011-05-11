@@ -10,9 +10,8 @@
 #include <deque>
 #include <map>
 #include <stdexcept>
-#include <boost/spirit.hpp>
 
-using namespace boost::spirit;
+using namespace BOOST_SPIRIT_CLASSIC_NS;
 
 struct aln_parser : public grammar< aln_parser >
 {

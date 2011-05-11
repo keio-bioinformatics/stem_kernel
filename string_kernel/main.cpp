@@ -8,8 +8,7 @@
 #include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <boost/bind.hpp>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -19,7 +18,6 @@
 #include "../common/fasta.h"
 
 namespace po = boost::program_options;
-using namespace boost::lambda;
 
 int
 main(int argc, char** argv)

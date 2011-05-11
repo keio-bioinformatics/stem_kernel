@@ -11,6 +11,7 @@
 
 typedef std::pair<std::string,std::string> Example;
 typedef std::vector< Example > ExampleSet;
+typedef unsigned int uint;
 
 uint
 load_examples(std::ifstream& in, ExampleSet& ex);

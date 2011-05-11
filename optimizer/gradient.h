@@ -8,6 +8,7 @@
 
 typedef boost::multi_array<double,2> Kmat;
 typedef boost::multi_array<double,3> Gmat;
+typedef unsigned int uint;
 
 class GradientComputation
 {

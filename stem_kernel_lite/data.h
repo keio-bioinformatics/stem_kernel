@@ -4,7 +4,12 @@
 #define __INC_DATA_H__
 
 #include <vector>
-#include <boost/spirit/iterator/file_iterator.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 103800
+#include <boost/spirit/include/classic.hpp>
+#else
+#include <boost/spirit.hpp>
+#endif
 #include "dag.h"
 #include "../common/bpmatrix.h" // for definitions folding methods
 #include "../common/profile.h"
@@ -13,6 +18,10 @@ namespace Vienna {
 #include <ViennaRNA/utils.h>
   };
 };
+
+#ifndef BOOST_SPIRIT_CLASSIC_NS
+#define BOOST_SPIRIT_CLASSIC_NS boost::spirit
+#endif
 
 template < class S, class IS, class N = DAG::Node<DAG::Edge> >
 struct Data
@@ -88,7 +97,7 @@ private:
   bool use_bp_;
   std::string filename_;
   uint type_;
-  boost::spirit::file_iterator<> fi_;
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi_;
   std::ifstream* pf_is_;
 };
 

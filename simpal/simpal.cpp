@@ -282,8 +282,7 @@ private:
 #include "../common/kernel_matrix.h"
 #include "../common/fasta.h"
 #include <boost/program_options.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
+#include <boost/bind.hpp>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -310,7 +309,6 @@ main(int argc, char** argv)
 {
   
   namespace po = boost::program_options;
-  using namespace boost::lambda;
   
   typedef double value_type;
   uint seed_length=3;

@@ -8,6 +8,8 @@
 #include <utility>
 #include <boost/multi_array.hpp>
 
+typedef unsigned int uint;
+
 template <class ValueType>
 class KernelMatrix {
 public:

@@ -10,6 +10,8 @@
 #include <svm.h>
 #include <boost/shared_array.hpp>
 
+typedef unsigned int uint;
+
 typedef boost::shared_array<struct svm_node> node_ary;
 
 class Problem

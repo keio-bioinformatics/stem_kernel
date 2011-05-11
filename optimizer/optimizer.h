@@ -6,6 +6,8 @@
 #include <iosfwd>
 #include <vector>
 
+typedef unsigned int uint;
+
 template < class CM, class GC >
 class Optimizer : public CM
 {

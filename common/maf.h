@@ -7,16 +7,25 @@
 #include <fstream>
 #include <list>
 #include <string>
-#include <boost/spirit/iterator/file_iterator.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 103800
+#include <boost/spirit/include/classic.hpp>
+#else
+#include <boost/spirit.hpp>
+#endif
 #include "../common/rna.h"
 
-template < class Seq >
-bool
-load_maf(MASequence<Seq>& ma, boost::spirit::file_iterator<>& fi);
+#ifndef BOOST_SPIRIT_CLASSIC_NS
+#define BOOST_SPIRIT_CLASSIC_NS boost::spirit
+#endif
 
 template < class Seq >
 bool
-load_maf(std::list<Seq>& ma, boost::spirit::file_iterator<>& fi);
+load_maf(MASequence<Seq>& ma, BOOST_SPIRIT_CLASSIC_NS::file_iterator<>& fi);
+
+template < class Seq >
+bool
+load_maf(std::list<Seq>& ma, BOOST_SPIRIT_CLASSIC_NS::file_iterator<>& fi);
 
 template < class Seq >
 bool

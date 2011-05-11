@@ -11,6 +11,8 @@
 #include <boost/shared_ptr.hpp>
 #include "log_value.h"
 
+typedef unsigned int uint;
+
 class Ribosum
 {
 public:
