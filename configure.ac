@@ -13,6 +13,7 @@ AC_PROG_CC
 AC_LANG(C++)
 AC_CXX_HAVE_STL
 AC_PROG_RANLIB
+AM_PROG_AR
 
 AC_ARG_ENABLE([ref-impl],
   AS_HELP_STRING([--enable-ref-impl],
@@ -45,6 +46,10 @@ AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
    ]) 
 ])        
 				    
+AX_BOOST_SYSTEM
+if test "x$BOOST_SYSTEM_LIB" != "x"; then
+  BOOST_LIBS="$BOOST_LIBS $BOOST_SYSTEM_LIB"
+fi
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
   BOOST_LIBS="$BOOST_LIBS $BOOST_PROGRAM_OPTIONS_LIB"

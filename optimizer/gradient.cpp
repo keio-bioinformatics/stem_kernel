@@ -623,7 +623,7 @@ calculate_gradient_p(const K& k,
 template < class T >
 void
 conjugate_gradient(const bnu::matrix<T>& A, const bnu::vector<T>& b,
-		   bnu::vector<T>& x, double tol=1e-10)
+		   bnu::vector<T>& x, double tol /*=1e-10*/)
 {
   using namespace boost::numeric::ublas;
   vector<T> r = b - prod(A,x);

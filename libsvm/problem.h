@@ -6,7 +6,7 @@
 #include <iosfwd>
 #include <vector>
 #include <string>
-#include <tr1/unordered_map>
+#include <unordered_map>
 #include <svm.h>
 #include <boost/shared_array.hpp>
 
@@ -57,7 +57,7 @@ public:
   void read(const std::string& f);
   bool add(std::istream& is);
   bool add(const std::string& f);
-  Problem select(const std::tr1::unordered_map<std::string,int>& pn_map) const;
+  Problem select(const std::unordered_map<std::string,int>& pn_map) const;
 #ifdef HAVE_BOOST_XPRESSIVE_XPRESSIVE_HPP
   Problem select(const std::string& pos, const std::string& neg) const;
 #endif

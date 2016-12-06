@@ -80,7 +80,7 @@ public:
   CalcDiagonal(uint n_th, uint th_no, const ExampleSet& train,
 	       const Kernel& kernel, std::vector<value_type>& diag)
     : n_th_(n_th), th_no_(th_no), train_(train),
-      sv_index_(), kernel_(kernel), diag_(diag), elapsed_(0.0)
+      kernel_(kernel), diag_(diag), elapsed_(0.0)
   {
   }
 
@@ -142,7 +142,7 @@ public:
 		 const Kernel& kernel, std::vector<value_type>& matrix,
 		 value_type* data_self=NULL)
     : n_th_(n_th), th_no_(th_no), data_(data), train_(train),
-      sv_index_(), kernel_(kernel), matrix_(matrix),
+      kernel_(kernel), matrix_(matrix),
       data_self_(data_self), elapsed_(0.0)
   {
   }

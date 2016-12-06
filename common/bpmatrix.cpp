@@ -371,7 +371,7 @@ make_bp_matrix(BPMatrix& bp, const std::list<std::string>& ma, float pf_scale,
       if (pf_scale<0.0 || opts.use_pf_scale_mfe) {
 	// scaling parameters to avoid overflow
 	char* str = new char[length+1];
-	double min_en = Vienna::alifold(seqs, str);
+	double min_en = Vienna::alifold(const_cast<const char**>(seqs), str);
 	delete[] str;
 	Vienna::free_alifold_arrays();
 	double kT = (Vienna::temperature+273.15)*1.98717/1000.; /* in Kcal */
@@ -385,7 +385,7 @@ make_bp_matrix(BPMatrix& bp, const std::list<std::string>& ma, float pf_scale,
 #else
       Vienna::pair_info* pi;
 #endif
-      Vienna::alipf_fold(seqs, NULL, &pi);
+      Vienna::alipf_fold(const_cast<const char**>(seqs), NULL, &pi);
       for (uint k=0; pi[k].i!=0; ++k)
 	bp(pi[k].i, pi[k].j) = pi[k].p;
       free(pi);

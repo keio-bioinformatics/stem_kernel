@@ -277,11 +277,11 @@ select() const
 
 Problem
 Data::
-select(const std::tr1::unordered_map<std::string,int>& pn_map) const
+select(const std::unordered_map<std::string,int>& pn_map) const
 {
   uint n=0;
   for (uint i=0; i!=labels_.size(); ++i) {
-    std::tr1::unordered_map<std::string,int>::const_iterator f;
+    std::unordered_map<std::string,int>::const_iterator f;
     f=pn_map.find(labels_[i]);
     if (f!=pn_map.end() && f->second!=0) {
       n++;
@@ -293,7 +293,7 @@ select(const std::tr1::unordered_map<std::string,int>& pn_map) const
   std::vector<double> y(n);
   n=0;
   for (uint i=0; i!=labels_.size(); ++i) {
-    std::tr1::unordered_map<std::string,int>::const_iterator f;
+    std::unordered_map<std::string,int>::const_iterator f;
     f=pn_map.find(labels_[i]);
     if (f!=pn_map.end()) {
       if (f->second>0) {
@@ -355,7 +355,7 @@ select(const std::vector<std::string>& pos,
   if (pos.empty() && neg.empty())
     return select();
   
-  std::tr1::unordered_map<std::string,int> pn_map;
+  std::unordered_map<std::string,int> pn_map;
   for (uint i=0; i!=pos.size(); ++i)
     pn_map[pos[i]]=+1;
   for (uint i=0; i!=neg.size(); ++i)
