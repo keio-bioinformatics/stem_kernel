@@ -46,15 +46,17 @@ AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
    ]) 
 ])        
 				    
-AX_BOOST_SYSTEM
-if test "x$BOOST_SYSTEM_LIB" != "x"; then
-  BOOST_LIBS="$BOOST_LIBS $BOOST_SYSTEM_LIB"
-fi
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
   BOOST_LIBS="$BOOST_LIBS $BOOST_PROGRAM_OPTIONS_LIB"
 else
   AC_MSG_ERROR("the Boost::Program_Options library is unavailable")  
+fi
+AX_BOOST_SYSTEM
+if test "x$BOOST_SYSTEM_LIB" != x; then
+  BOOST_LIBS="$BOOST_LIBS $BOOST_SYSTEM_LIB"
+else
+  AC_MSG_ERROR("the Boost::System library is unavailable")  
 fi
 AX_BOOST_THREAD
 if test "x$BOOST_THREAD_LIB" != "x"; then
