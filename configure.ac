@@ -46,6 +46,15 @@ AC_ARG_WITH([mpi], AS_HELP_STRING([--with-mpi],[use MPICH]),
    ]) 
 ])        
 				    
+# boost libraries
+AX_BOOST_BASE(1.34, , AC_MSG_ERROR("the boost library is unavailable"))
+if test "x$BOOST_CPPFLAGS" != x; then
+  CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
+fi
+if test "x$BOOST_LDFLAGS" != x; then
+  LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
+fi
+
 AX_BOOST_PROGRAM_OPTIONS
 if test "x$BOOST_PROGRAM_OPTIONS_LIB" != x; then
   BOOST_LIBS="$BOOST_LIBS $BOOST_PROGRAM_OPTIONS_LIB"
@@ -55,8 +64,6 @@ fi
 AX_BOOST_SYSTEM
 if test "x$BOOST_SYSTEM_LIB" != x; then
   BOOST_LIBS="$BOOST_LIBS $BOOST_SYSTEM_LIB"
-else
-  AC_MSG_ERROR("the Boost::System library is unavailable")  
 fi
 AX_BOOST_THREAD
 if test "x$BOOST_THREAD_LIB" != "x"; then
