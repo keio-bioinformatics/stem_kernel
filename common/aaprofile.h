@@ -1,0 +1,83 @@
+// $Id$
+
+#ifndef __INC_AAPROFILE_H__
+#define __INC_AAPROFILE_H__
+
+#include <vector>
+#include <string>
+
+class AAProfileSequence
+{
+public:
+  typedef float value_type;
+  typedef std::vector<value_type> Column;
+  typedef std::vector<Column>::const_iterator const_iterator;
+  static const unsigned int N_AA=23;
+
+public:
+  static int char2aa(int c);
+
+public:
+  AAProfileSequence()
+    : n_seqs_(0), profile_()
+  {
+  }
+
+  AAProfileSequence(const AAProfileSequence& s)
+    : n_seqs_(s.n_seqs_), profile_(s.profile_)
+  {
+  }
+
+  AAProfileSequence(const std::string& seq)
+    : n_seqs_(0), profile_()
+  {
+    initialize(seq.size());
+    add_sequence(seq);
+  }
+
+  template < class It >
+  AAProfileSequence(It b, It e)
+    : n_seqs_(0), profile_()
+  {
+    initialize(b->size());
+    for (It x=b; x!=e; ++x) add_sequence(*x);
+  }
+
+  template < class T >
+  AAProfileSequence(const T& ma)
+    : n_seqs_(0), profile_()
+  {
+    initialize(ma.begin()->size());
+    typename T::const_iterator x;
+    for (x=ma.begin(); x!=ma.end(); ++x) add_sequence(*x);
+  }
+
+  AAProfileSequence& operator=(const AAProfileSequence& s);
+
+  value_type n_seqs() const { return n_seqs_; }
+
+  unsigned int size() const { return profile_.size(); }
+
+  const Column& operator[](unsigned int i) const { return profile_[i]; }
+
+  const_iterator begin() const { return profile_.begin(); }
+
+  const_iterator end() const { return profile_.end(); }
+
+  void add_sequence(const std::string& seq, value_type w=1.0);
+
+  void add_sequence(const AAProfileSequence& seq, value_type w=1.0);
+
+private:
+  void initialize(unsigned int sz);
+
+private:  
+  value_type n_seqs_;
+  std::vector<Column> profile_;
+};
+
+#endif	// __INC_PROFILE_H__
+
+// Local Variables:
+// mode: C++
+// End:

@@ -25,6 +25,7 @@ optimizer/poly_optimizer
 optimizer/rbf_optimizer
 optimizer/sigmoid_optimizer
 bpla_kernel/bpla_kernel
+bpla_kernel/la_kernel
 bpla_kernel/bpla_optimizer
 stem_kernel_lite/la_kernel
 stem_kernel_lite/stem_kernel_lite

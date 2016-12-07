@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cassert>
 #include <boost/multi_array.hpp>
 #include "bpla_kernel.h"
 
@@ -22,11 +23,15 @@ struct LAScore
   ValueType
   operator()(const Data& x, const Data& y, uint i, uint j) const
   {
+    assert(x.seq[0].size()==y.seq[0].size());
+    assert(score_table_.size()==x.seq[0].size()-1);
+    assert(score_table_[0].size()==x.seq[0].size()-1);
+
     ValueType v = 0.0;
     float n = 0;
-    for (uint k=0; k!=N_RNA; ++k) {
+    for (uint k=0; k!=x.seq[i].size()-1; ++k) {
       if (x.seq[i][k]==0) continue;
-      for (uint l=0; l!=N_RNA; ++l) {
+      for (uint l=0; l!=y.seq[j].size()-1; ++l) {
 	if (y.seq[j][l]==0) continue;
 	n += x.seq[i][k]*y.seq[j][l];
 	v += score_table_[k][l]*x.seq[i][k]*y.seq[j][l];
@@ -348,3 +353,5 @@ compute_gradients(const Data& x, const Data& y,
 
 // instatiation
 template class BPLAKernel<double,MData>;
+
+template class BPLAKernel<double,AAMData>;

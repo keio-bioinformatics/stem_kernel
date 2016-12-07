@@ -12,6 +12,7 @@
 #endif
 #include "../common/bpmatrix.h" // for definitions folding methods
 #include "../common/profile.h"
+#include "../common/aaprofile.h"
 namespace Vienna {
   extern "C" {
 #include <ViennaRNA/utils.h>
@@ -48,6 +49,7 @@ struct Data
 
 typedef Data< ProfileSequence, std::string> SData;
 typedef Data< ProfileSequence, std::list<std::string> > MData;
+typedef Data< AAProfileSequence, std::list<std::string> > AAMData;
 
 template < class D >
 class DataLoader
@@ -113,6 +115,23 @@ private:
   std::ifstream* pf_is_;
 };
 
+template < >
+class DataLoader<AAMData>
+{
+public:
+  typedef AAMData Data;
+
+public:
+  DataLoader(const char* filename);
+  ~DataLoader();
+  Data* get();
+
+private:
+  std::string filename_;
+  uint type_;
+  BOOST_SPIRIT_CLASSIC_NS::file_iterator<> fi_;
+};
+
 template < class LD >
 class DataLoaderFactory
 {
@@ -169,6 +188,24 @@ public:
 private:
   BPMatrix::Options bp_opts_;
   bool use_bp_;
+};
+
+template < >
+class DataLoaderFactory< DataLoader<AAMData> >
+{
+public:
+  typedef DataLoader<AAMData> Loader;
+  typedef Loader::Data Data;
+
+public:
+  DataLoaderFactory()
+  {
+  }
+  
+  Loader* get_loader(const char* filename,  const char* pf_scales=NULL) const
+  {
+    return new Loader(filename);
+  }
 };
 
 #endif	// __INC_DATA_H__

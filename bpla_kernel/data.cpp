@@ -11,7 +11,7 @@
 #include "data.h"
 #include "../common/bpmatrix.h"
 #include "../common/profile.h"
-#include "../common/cyktable.h"
+#include "../common/aaprofile.h"
 #include "../common/fa.h"
 #include "../common/maf.h"
 #include "../common/aln.h"
@@ -232,6 +232,66 @@ get()
   return NULL;
 }
 
+DataLoader<AAMData>::
+DataLoader(const char* filename)
+  : filename_(filename),
+    type_(check_filetype(filename)),
+    fi_()
+{
+  switch (type_) {
+  case TP_FA:
+  case TP_ALN:
+  case TP_MAF:
+    fi_ = BOOST_SPIRIT_CLASSIC_NS::file_iterator<>(filename_);
+    break;
+  default:
+    break;
+  }
+  if (!fi_) {
+    std::ostringstream os;
+    os << filename_ << ": no such file";
+    throw os.str().c_str();
+    //return false;
+  }
+}
+
+DataLoader<AAMData>::
+~DataLoader()
+{
+}
+
+AAMData*
+DataLoader<AAMData>::
+get()
+{
+  bool ret=false;
+  std::list<std::string> ma;
+  switch (type_) {
+  case TP_FA:
+    ret=load_fa(ma, fi_);
+    break;
+  case TP_ALN:
+    ret=load_aln(ma, fi_);
+    break;
+  case TP_MAF:
+    ret=load_maf(ma, fi_);
+    break;
+  default:
+    break;
+  }
+
+  if (ret) {
+    std::list<std::string>::const_iterator x;
+    uint l=ma.begin()->size();
+    for (x=ma.begin(); x!=ma.end(); ++x) {
+      if (l!=x->size()) throw "wrong alignment";
+    }
+  
+    return new AAMData(ma);
+  }
+  return NULL;
+}
+
 #if 0
 DataLoader<SData>*
 DataLoaderFactory< DataLoader<SData> >::
@@ -262,3 +322,13 @@ class Data<ProfileSequence, std::string>;
 
 template
 class Data<ProfileSequence, std::list<std::string> >;
+
+template
+class Data<AAProfileSequence, std::list<std::string> >;
+
+template
+class DataLoaderFactory<DataLoader<MData> >;
+
+template
+class DataLoaderFactory<DataLoader<AAMData> >;
+
