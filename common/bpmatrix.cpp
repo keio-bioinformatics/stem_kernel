@@ -6,6 +6,7 @@
 #include "bpmatrix.h"
 #include "../common/rna.h"
 #include <cmath>
+#include <cstdio>
 #include <stack>
 #include <algorithm>
 #include <boost/shared_ptr.hpp>
