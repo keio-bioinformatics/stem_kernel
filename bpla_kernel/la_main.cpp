@@ -83,6 +83,7 @@ main(int argc, char** argv)
 
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
+    ("SW", "Smith-Waterman kernel instead of local alignment kernels.")
     ("gap,g", po::value<float>(&gap)->default_value(-10.0), "set gap weight")
     ("ext,e", po::value<float>(&ext)->default_value(-1.0), "set extension weight")
     //("alpha,a", po::value<float>(&alpha)->default_value(4.5), "set alpha")
@@ -129,7 +130,7 @@ main(int argc, char** argv)
   try {
     typedef DataLoaderFactory<DataLoader<AAMData> > LDF;
     LDF ldf;
-    BPLAKernel<double,AAMData> kernel(score_table, true, gap, ext, alpha, beta);
+    BPLAKernel<double,AAMData> kernel(score_table, true, vm.count("SW"), gap, ext, alpha, beta);
     App<BPLAKernel<double,AAMData>, LDF> app(kernel, ldf, opts);
     res = app.execute();
   } catch (const char* str) {

@@ -67,6 +67,7 @@ main(int argc, char** argv)
   po::options_description k_desc("Kernel Options");
   k_desc.add_options()
     ("noBP", "do not use base-pairing profiles, i.e. run as local alignment kernels.")
+    ("SW", "Smith-Waterman kernel instead of local alignment kernels.")
     ("gap,g", po::value<float>(&gap)->default_value(-8.0), "set gap weight")
     ("ext,e", po::value<float>(&ext)->default_value(-0.75), "set extension weight")
     ("alpha,a", po::value<float>(&alpha)->default_value(4.5), "set alpha")
@@ -114,13 +115,13 @@ main(int argc, char** argv)
     if (vm.count("noBP")) {
       typedef DataLoaderFactory<DataLoader<MData> > LDF;
       LDF ldf;
-      BPLAKernel<double,MData> kernel(score_table, vm.count("noBP"), gap, ext, alpha, beta);
+      BPLAKernel<double,MData> kernel(score_table, vm.count("noBP"), vm.count("SW"), gap, ext, alpha, beta);
       App<BPLAKernel<double,MData>, LDF> app(kernel, ldf, opts);
       res = app.execute();
     } else {
       typedef DataLoaderFactory<DataLoader<MData> > LDF;
       LDF ldf(bp_opts);
-      BPLAKernel<double,MData> kernel(score_table, vm.count("noBP"), gap, ext, alpha, beta);
+      BPLAKernel<double,MData> kernel(score_table, vm.count("noBP"), vm.count("SW"), gap, ext, alpha, beta);
       App<BPLAKernel<double,MData>, LDF> app(kernel, ldf, opts);
       res = app.execute();
     }

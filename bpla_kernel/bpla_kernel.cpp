@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <cassert>
 #include <boost/multi_array.hpp>
@@ -63,9 +64,9 @@ struct BPLAScore : public LAScore<ValueType,Data>
 template < class Data, class ValueType, class Score >
 inline
 ValueType
-local_alignment(const Data& x, const Data& y,
-		ValueType beta,	ValueType gap, ValueType ext,
-		Score score)
+local_alignment_exp(const Data& x, const Data& y,
+                    ValueType beta, ValueType gap, ValueType ext,
+                    Score score)
 {
   ValueType beta_gap = exp(beta*gap);
   ValueType beta_ext = exp(beta*ext);
@@ -113,15 +114,63 @@ local_alignment(const Data& x, const Data& y,
     + Y2[x.size()][y.size()] + M[x.size()][y.size()];
 }
 
+template < class Data, class ValueType, class Score >
+inline
+ValueType
+local_alignment_max(const Data& x, const Data& y,
+                    ValueType gap, ValueType ext,
+                    Score score)
+{
+  typedef boost::multi_array<ValueType,2> dp_type;
+  dp_type M(boost::extents[x.size()+1][y.size()+1]);
+  dp_type X(boost::extents[x.size()+1][y.size()+1]);
+  dp_type Y(boost::extents[x.size()+1][y.size()+1]);
+  ValueType Mmax = 0;
+
+  //initialize  
+  for (uint i=0; i!=x.size()+1; ++i) {
+    M[i][0]=0;
+    X[i][0]=0;
+    Y[i][0]=0;
+  }
+
+  for (uint j=0; j!=y.size()+1; ++j) {
+    M[0][j]=0;
+    X[0][j]=0;
+    Y[0][j]=0;
+  }
+
+  //calculate
+  for (uint i=1; i != x.size()+1; ++i) {
+    for (uint j=1; j != y.size()+1; ++j) {
+      M[i][j] = std::max(0.0, M[i-1][j-1]);
+      M[i][j] = std::max(M[i][j], X[i-1][j-1]);
+      M[i][j] = std::max(M[i][j], Y[i-1][j-1]);
+      M[i][j] += score(x, y, i-1, j-1);
+      Mmax = std::max(Mmax, M[i][j]);
+      X[i][j] = std::max(M[i-1][j]+gap, X[i-1][j]+ext);
+      Y[i][j] = std::max(std::max(M[i][j-1]+gap, X[i][j-1]+gap), Y[i][j-1]+ext);
+    }
+  }
+
+  return Mmax;
+}
+
 template < class ValueType, class Data >
 ValueType
 BPLAKernel<ValueType,Data>::
 operator()(const Data& x, const Data& y) const
 {
-  if (noBP_)
-    return local_alignment(x, y, beta_, gap_, ext_, LAScore<ValueType,Data>(score_table_));
+  if (SW_)
+    if (noBP_)
+      return local_alignment_max(x, y, gap_, ext_, LAScore<ValueType,Data>(score_table_));
+    else
+      return local_alignment_max(x, y, gap_, ext_, BPLAScore<ValueType,Data>(score_table_, alpha_));
   else
-    return local_alignment(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(score_table_, alpha_));
+    if (noBP_)
+      return local_alignment_exp(x, y, beta_, gap_, ext_, LAScore<ValueType,Data>(score_table_));
+    else
+      return local_alignment_exp(x, y, beta_, gap_, ext_, BPLAScore<ValueType,Data>(score_table_, alpha_));
 }
 
 
